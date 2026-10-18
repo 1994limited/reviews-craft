@@ -2,6 +2,12 @@
     The review form. On a page cached whole (by Blitz, say), make this part
     dynamic so it's right for each visitor: see the docs on caching.
 #}
+{#- Included on its own (by Blitz's includeDynamic, say), it takes an elementId. -#}
+{% set element = element ?? craft.app.elements.getElementById(elementId ?? 0, null, currentSite.id) %}
+{% set options = options ?? {} %}
+{% set wrap = wrap ?? true %}
+{% set reviewForm = reviewForm ?? craft.app.urlManager.routeParams.reviewForm ?? null %}
+{% if element %}
 {% set form = craft.reviews.formOptions(element, reviewForm) %}
 {% if wrap %}<div class="reviews-ui">{% endif %}
 <div id="write-a-review">
@@ -91,3 +97,4 @@
     </form>
 </div>
 {% if wrap %}</div>{% endif %}
+{% endif %}

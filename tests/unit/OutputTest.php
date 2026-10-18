@@ -51,6 +51,15 @@ class OutputTest extends TestCase
         $this->assertStringContainsString('From 1 review', $html);
     }
 
+    public function test_the_form_can_be_included_on_its_own_by_element_id(): void
+    {
+        $entry = $this->entry();
+        $html = $this->render("{% include '_reviews/form' with { elementId: id } only %}", ['id' => $entry->id]);
+
+        $this->assertStringContainsString('name="elementId" value="'.$entry->id.'"', $html);
+        $this->assertStringContainsString('class="reviews-ui"', $html);
+    }
+
     public function test_the_styles_come_from_the_core(): void
     {
         $this->assertStringContainsString('@layer reviews', (string) $this->render('{{ craft.reviews.styles(true) }}'));
