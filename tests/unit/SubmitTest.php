@@ -3,10 +3,14 @@
 namespace nineteenninetyfour\reviews\tests\unit;
 
 use Craft;
+use craft\base\Element;
+use craft\events\ModelEvent;
+use craft\helpers\FileHelper;
 use NineteenNinetyFour\Reviews\Core\Spam\TimeToken;
 use nineteenninetyfour\reviews\elements\Review;
 use nineteenninetyfour\reviews\elements\ReviewStatus;
 use nineteenninetyfour\reviews\services\Spam;
+use yii\base\Event;
 use yii\web\ForbiddenHttpException;
 
 class SubmitTest extends TestCase
@@ -233,5 +237,43 @@ class SubmitTest extends TestCase
 
         $this->action('reviews/moderate/reply', body: ['reviewId' => $review->id, 'reply' => 'Thanks']);
         $this->assertSame('Thanks', Review::find()->id($review->id)->status(null)->one()->reply);
+    }
+
+    public function test_guests_get_the_same_answer_whatever_happened(): void
+    {
+        $entry = $this->entry();
+
+        $new = $this->json($this->action('reviews/reviews/submit', body: $this->form($entry->id)));
+        $repeat = $this->json($this->action('reviews/reviews/submit', body: $this->form($entry->id)));
+        $bot = $this->json($this->action('reviews/reviews/submit', body: $this->form($entry->id, [Spam::HONEYPOT => 'x'])));
+
+        $this->assertSame($new, $repeat);
+        $this->assertSame($new, $bot);
+        $this->assertArrayNotHasKey('review', $new);
+    }
+
+    public function test_a_review_that_can_t_be_saved_keeps_its_old_photos_and_drops_new_ones(): void
+    {
+        $this->settings(['photosEnabled' => true]);
+        $entry = $this->entry();
+        $user = $this->actingAs([]);
+        $review = $this->review($entry, 5, ReviewStatus::Pending, ['userId' => $user->id, 'email' => $user->email, 'photos' => [['pending' => 'reviews/pending/abc/keepme.jpg']]]);
+        $kept = Craft::$app->getPath()->getStoragePath().'/reviews/pending/abc/keepme.jpg';
+        FileHelper::createDirectory(dirname($kept));
+        file_put_contents($kept, 'x');
+
+        Event::on(Review::class, Element::EVENT_BEFORE_SAVE, $refuse = function (ModelEvent $event) {
+            $event->isValid = false;
+        });
+
+        try {
+            $data = $this->json($this->action('reviews/reviews/submit', body: $this->form($entry->id, ['removePhotos' => [0]])));
+        } finally {
+            Event::off(Review::class, Element::EVENT_BEFORE_SAVE, $refuse);
+        }
+
+        $this->assertFalse($data['success']);
+        $this->assertFileExists($kept);
+        $this->assertSame([['pending' => 'reviews/pending/abc/keepme.jpg']], Review::find()->id($review->id)->status(null)->one()->photos);
     }
 }

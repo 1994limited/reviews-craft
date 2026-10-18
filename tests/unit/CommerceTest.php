@@ -15,6 +15,7 @@ use craft\commerce\services\Carts;
 use craft\commerce\services\Stores;
 use craft\db\Query;
 use craft\elements\User;
+use craft\helpers\Db;
 use craft\helpers\StringHelper;
 use nineteenninetyfour\reviews\elements\Review;
 use nineteenninetyfour\reviews\integrations\Commerce as CommerceIntegration;
@@ -161,8 +162,11 @@ class CommerceTest extends TestCase
         $order = $this->order($product, null, 'guest@example.com');
         $token = (string) (new Query)->from(Install::REQUESTS)->select('token')->where(['orderId' => $order->id])->scalar();
 
+        $this->plugin()->requests->send((int) (new Query)->from(Install::REQUESTS)->select('id')->where(['orderId' => $order->id])->scalar());
+
         // As if the visitor's browser already had a session.
         Craft::$app->getSession()->setHasSessionId(true);
+        Craft::$app->getSession()->remove(Submissions::ORDERS);
         $this->plugin()->requests->opened($token);
         $this->assertSame([$order->id], Submissions::sessionOrders());
 
@@ -187,5 +191,37 @@ class CommerceTest extends TestCase
         $id = (int) (new Query)->from(Install::REQUESTS)->select('id')->where(['orderId' => $order->id])->scalar();
 
         $this->assertFalse($this->plugin()->requests->send($id));
+    }
+
+    public function test_a_request_is_only_ever_sent_once(): void
+    {
+        $order = $this->order($this->product(), null, 'once@example.com');
+        $id = (int) (new Query)->from(Install::REQUESTS)->select('id')->where(['orderId' => $order->id])->scalar();
+
+        // Another worker has claimed it.
+        Db::update(Install::REQUESTS, ['dateSent' => Db::prepareDateForDb(new \DateTime)], ['id' => $id]);
+
+        $this->assertFalse($this->plugin()->requests->send($id));
+        $this->tester->seeEmailIsSent(0);
+    }
+
+    public function test_old_request_links_don_t_make_anyone_a_buyer(): void
+    {
+        $order = $this->order($this->product(), null, 'old@example.com');
+        $request = (new Query)->from(Install::REQUESTS)->where(['orderId' => $order->id])->one();
+        Craft::$app->getSession()->setHasSessionId(true);
+        Craft::$app->getSession()->remove(Submissions::ORDERS);
+
+        // Not sent yet: the link counts for nothing.
+        $this->plugin()->requests->opened($request['token']);
+        $this->assertSame([], Submissions::sessionOrders());
+
+        Db::update(Install::REQUESTS, ['dateSent' => Db::prepareDateForDb(new \DateTime('-100 days'))], ['id' => $request['id']]);
+        $this->plugin()->requests->opened($request['token']);
+        $this->assertSame([], Submissions::sessionOrders());
+
+        Db::update(Install::REQUESTS, ['dateSent' => Db::prepareDateForDb(new \DateTime('-10 days'))], ['id' => $request['id']]);
+        $this->plugin()->requests->opened($request['token']);
+        $this->assertSame([$order->id], Submissions::sessionOrders());
     }
 }

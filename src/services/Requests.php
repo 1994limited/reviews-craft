@@ -32,6 +32,9 @@ class Requests extends Component
     /** How long to keep waiting for an order to reach the status asked for. */
     public const GIVE_UP_DAYS = 60;
 
+    /** How long a request email's links count as coming from the customer. */
+    public const TOKEN_DAYS = 90;
+
     /**
      * An order was completed: ask for reviews once the delay has passed.
      */
@@ -115,6 +118,14 @@ class Requests extends Component
             'product' => $product,
         ], $products);
 
+        // Claim it first: two workers sending the same request at once can't
+        // both send it.
+        $claimed = Db::update(Install::REQUESTS, ['dateSent' => Db::prepareDateForDb(new DateTime)], ['id' => $requestId, 'dateSent' => null]);
+
+        if ($claimed === 0) {
+            return false;
+        }
+
         try {
             $sent = Craft::$app->getMailer()
                 ->composeFromKey(self::MESSAGE, [
@@ -127,12 +138,12 @@ class Requests extends Component
                 ->send();
         } catch (Throwable $e) {
             Craft::error('Reviews couldn’t send a review request: '.$e->getMessage(), 'reviews');
-
-            return false;
+            $sent = false;
         }
 
-        if ($sent) {
-            $this->markSent($requestId);
+        if (! $sent) {
+            // Not sent after all: free it, to try again.
+            Db::update(Install::REQUESTS, ['dateSent' => null], ['id' => $requestId]);
         }
 
         return (bool) $sent;
@@ -174,7 +185,9 @@ class Requests extends Component
 
         $request = (new Query)->from(Install::REQUESTS)->where(['token' => $token])->one();
 
-        if (! $request) {
+        // Only for a while after the email went: a link found later, in a
+        // forwarded email or an old history, doesn't make anyone a buyer.
+        if (! $request || $request['dateSent'] === null || (new DateTime($request['dateSent'], new \DateTimeZone('UTC')))->getTimestamp() < time() - self::TOKEN_DAYS * 86400) {
             return;
         }
 

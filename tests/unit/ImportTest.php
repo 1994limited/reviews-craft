@@ -147,4 +147,54 @@ class ImportTest extends TestCase
         $this->assertTrue($this->plugin()->sync->save($feefo));
         $this->assertTrue($feefo->counts());
     }
+
+    public function test_two_shops_on_the_same_platform_are_never_mixed_up(): void
+    {
+        $this->entry('books', 'Two Shops', [], ['slug' => 'two-shops']);
+        $reply = fn (string $body) => ['reviews' => [['id' => 1, 'rating' => 5, 'product_handle' => 'two-shops', 'body' => $body, 'reviewer' => ['name' => 'Gil']]]];
+        $sync = $this->plugin()->sync;
+
+        $first = new Source(['type' => 'judgeme', 'name' => 'Shop A', 'settings' => ['shop_domain' => 'a.myshopify.com', 'api_token' => 't']]);
+        $second = new Source(['type' => 'judgeme', 'name' => 'Shop B', 'settings' => ['shop_domain' => 'b.myshopify.com', 'api_token' => 't']]);
+        $sync->save($first);
+        $sync->save($second);
+
+        $sync->client = new FakeClient([$reply('From A')]);
+        $sync->run($first);
+        $sync->client = new FakeClient([$reply('From B')]);
+        $sync->run($second);
+
+        $this->assertSame(['From A', 'From B'], array_map(fn ($r) => $r->body, Review::find()->orderBy(['elements.id' => SORT_ASC])->all()));
+    }
+
+    public function test_a_sync_follows_every_change_the_platform_makes(): void
+    {
+        $this->entry('books', 'Changing', [], ['slug' => 'changing']);
+        $item = ['id' => 7, 'rating' => 4, 'product_handle' => 'changing', 'body' => 'Same', 'reviewer' => ['name' => 'Hal'], 'verified' => 'nobuyer', 'pictures' => [['urls' => ['original' => 'https://judge.me/1.jpg']]]];
+        $source = new Source(['type' => 'judgeme', 'name' => 'Judge.me', 'settings' => ['shop_domain' => 'x', 'api_token' => 't']]);
+        $sync = $this->plugin()->sync;
+        $sync->save($source);
+
+        $sync->client = new FakeClient([['reviews' => [$item]]]);
+        $sync->run($source);
+
+        $sync->client = new FakeClient([['reviews' => [['reviewer' => ['name' => 'Hal Renamed'], 'verified' => 'buyer', 'pictures' => []] + $item]]]);
+        $this->assertSame(1, $sync->run($source)->updated);
+
+        $review = Review::find()->one();
+        $this->assertSame('Hal Renamed', $review->name);
+        $this->assertTrue($review->verified);
+        $this->assertSame([], $review->photos);
+    }
+
+    public function test_unsafe_review_links_aren_t_kept(): void
+    {
+        $this->entry('books', 'Linked', [], ['slug' => 'linked']);
+        $csv = "title,body,rating,review_date,reviewer_name,product_handle,url\n"
+            ."A,Fine,4,2026-02-01,Ivy,linked,javascript:alert(document.cookie)\n";
+
+        $this->plugin()->imports->import($this->plugin()->imports->read($csv)->reviews, new ImportOptions);
+
+        $this->assertNull(Review::find()->one()->sourceUrl);
+    }
 }

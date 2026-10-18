@@ -13,6 +13,7 @@ use NineteenNinetyFour\Reviews\Core\Import\Formats;
 use NineteenNinetyFour\Reviews\Core\Import\ImportedReview;
 use NineteenNinetyFour\Reviews\Core\Import\Importer;
 use NineteenNinetyFour\Reviews\Core\Import\ImportResult;
+use NineteenNinetyFour\Reviews\Core\Import\Values;
 use NineteenNinetyFour\Reviews\Core\Sync\Sources;
 use nineteenninetyfour\reviews\elements\Review;
 use nineteenninetyfour\reviews\elements\ReviewStatus;
@@ -78,7 +79,7 @@ class Imports extends Component
                 continue;
             }
 
-            if (Review::find()->fingerprint($imported->fingerprint())->status(null)->trashed(null)->exists()) {
+            if (Review::find()->fingerprint($this->fingerprint($imported, $options))->status(null)->trashed(null)->exists()) {
                 $preview['existing']++;
 
                 continue;
@@ -157,7 +158,7 @@ class Imports extends Component
             return ['skipped', 0];
         }
 
-        $fingerprint = $imported->fingerprint();
+        $fingerprint = $this->fingerprint($imported, $options);
         $existing = Review::find()->fingerprint($fingerprint)->status(null)->trashed(null)->one();
 
         if ($existing) {
@@ -186,7 +187,7 @@ class Imports extends Component
         $review->sourceId = $options->sourceId;
         $review->counted = $options->counted;
         $review->email = $imported->email;
-        $review->photos = array_map(fn (string $url) => ['url' => $url], array_slice($imported->photos, 0, 10));
+        $this->fillPhotos($review, $imported);
         $review->dateCreated = $imported->date ? DateTime::createFromImmutable($imported->date) : null;
         $this->fill($review, $imported, $options);
 
@@ -197,13 +198,33 @@ class Imports extends Component
         return ['added', (int) $element->id];
     }
 
+    /**
+     * What tells a review apart: the platform's own, and for a sync, which
+     * source it came from too, so two shops on the same platform (each
+     * with a review number 1) are never mixed up.
+     */
+    protected function fingerprint(ImportedReview $imported, ImportOptions $options): string
+    {
+        $fingerprint = $imported->fingerprint();
+
+        return $options->sourceId ? hash('sha256', $fingerprint.'|source:'.$options->sourceId) : $fingerprint;
+    }
+
     protected function update(Review $review, ImportedReview $imported, ImportOptions $options): bool
     {
-        $before = [$review->rating, $review->title, $review->body, $review->reply, $review->reviewStatus, $review->counted];
+        $snapshot = fn () => [
+            $review->rating, $review->title, $review->body, $review->name, $review->email, $review->verified,
+            $review->reply, $review->dateReplied?->format(DATE_ATOM), $review->sourceUrl, $review->photos,
+            $review->reviewStatus, $review->counted,
+        ];
+
+        $before = $snapshot();
         $review->counted = $options->counted;
+        $review->email = $imported->email;
+        $this->fillPhotos($review, $imported);
         $this->fill($review, $imported, $options);
 
-        if ($before === [$review->rating, $review->title, $review->body, $review->reply, $review->reviewStatus, $review->counted]) {
+        if ($before === $snapshot()) {
             return false;
         }
 
@@ -219,7 +240,8 @@ class Imports extends Component
         $review->verified = $imported->verified;
         $review->reply = $imported->reply;
         $review->dateReplied = $imported->reply !== null && $imported->replyDate ? DateTime::createFromImmutable($imported->replyDate) : null;
-        $review->sourceUrl = $imported->url !== null ? mb_substr($imported->url, 0, 500) : null;
+        $url = Values::url($imported->url);
+        $review->sourceUrl = $url !== null && mb_strlen($url) <= 500 ? $url : null;
 
         // A new review follows the platform. Later, a sync only takes down
         // what the platform took down: an editor's decision stands.
@@ -234,6 +256,16 @@ class Imports extends Component
             $review->reviewStatus = ReviewStatus::Rejected;
             $review->dateApproved = null;
         }
+    }
+
+    /**
+     * An imported review's photos are the platform's addresses. Photos an
+     * editor added here (as assets) stay.
+     */
+    protected function fillPhotos(Review $review, ImportedReview $imported): void
+    {
+        $own = array_values(array_filter($review->photos, fn ($photo) => ! isset($photo['url'])));
+        $review->photos = [...$own, ...array_map(fn (string $url) => ['url' => $url], array_slice(Values::urls($imported->photos), 0, 10))];
     }
 
     /**

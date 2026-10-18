@@ -184,9 +184,11 @@ class Submissions extends Component
         $review->verified = $order !== null;
         $review->orderId = $order;
 
-        if ($existing) {
-            $removed = [];
+        // Photo changes are staged: removed ones go only once the review is
+        // saved, and new ones are taken away again if it can't be.
+        $removed = [];
 
+        if ($existing) {
             foreach ($form->removePhotos as $index) {
                 if (isset($review->photos[$index])) {
                     $removed[] = $review->photos[$index];
@@ -194,28 +196,43 @@ class Submissions extends Component
                 }
             }
 
-            $plugin->photos->deleteFiles($removed);
             $review->photos = array_values($review->photos);
         }
+
+        $kept = $review->photos;
 
         if ($form->photos !== []) {
             $plugin->photos->store($review, $form->photos);
         }
 
+        $added = array_values(array_filter($review->photos, fn ($photo) => ! in_array($photo, $kept, true)));
         $review->submitting = true;
 
-        // A changed review goes back to an editor, unless it'd be published
-        // straight away anyway.
-        if ($this->autoApproves($review)) {
-            $review->reviewStatus = $review->isApproved() ? ReviewStatus::Approved : ReviewStatus::Pending;
-            $plugin->reviews->save($review, false);
-            $plugin->reviews->approve($review);
-        } elseif ($existing && ! $review->isPending()) {
-            $plugin->reviews->hold($review);
-        } else {
-            $review->reviewStatus = ReviewStatus::Pending;
-            $plugin->reviews->save($review, false);
+        try {
+            // A changed review goes back to an editor, unless it'd be
+            // published straight away anyway.
+            if ($this->autoApproves($review)) {
+                $review->reviewStatus = $review->isApproved() ? ReviewStatus::Approved : ReviewStatus::Pending;
+                $saved = $plugin->reviews->save($review, false) && $plugin->reviews->approve($review);
+            } elseif ($existing && ! $review->isPending()) {
+                $saved = $plugin->reviews->hold($review);
+            } else {
+                $review->reviewStatus = ReviewStatus::Pending;
+                $saved = $plugin->reviews->save($review, false);
+            }
+        } catch (\Throwable $e) {
+            Craft::error('Reviews couldn’t save a review: '.$e->getMessage(), 'reviews');
+            $saved = false;
         }
+
+        if (! $saved) {
+            $plugin->photos->deleteFiles($added);
+            $review->submitting = false;
+
+            throw new ReviewException(Craft::t('reviews', 'Your review couldn’t be saved. Please try again.'));
+        }
+
+        $plugin->photos->deleteFiles($removed);
 
         if ($plugin->reviews->hasEventHandlers(Reviews::EVENT_AFTER_SUBMIT)) {
             $plugin->reviews->trigger(Reviews::EVENT_AFTER_SUBMIT, new ReviewEvent(['review' => $review]));

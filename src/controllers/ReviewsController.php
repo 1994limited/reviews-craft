@@ -31,9 +31,15 @@ class ReviewsController extends Controller
         $plugin = Plugin::getInstance();
         $request = $this->request;
 
-        // A bot is thanked as a person would be, and nothing is kept.
+        $user = static::currentUser();
+
+        // A guest always gets the same answer, whether their review was
+        // kept, was a repeat, or looked like a bot's: nothing in it says
+        // whether an email address has reviewed this before.
+        $thanks = Craft::t('reviews', 'Thank you for your review.');
+
         if ($plugin->spam->isBot($request)) {
-            return $this->succeeded(Craft::t('reviews', 'Thank you! Your review will appear once it’s been checked.'));
+            return $this->succeeded($thanks);
         }
 
         if (! $plugin->spam->captchaPassed($request)) {
@@ -44,9 +50,9 @@ class ReviewsController extends Controller
         }
 
         try {
-            $result = $plugin->submissions->submit($request, static::currentUser());
+            $result = $plugin->submissions->submit($request, $user);
         } catch (DuplicateReview) {
-            return $this->succeeded(Craft::t('reviews', 'Thank you! Your review will appear once it’s been checked.'));
+            return $this->succeeded($thanks);
         } catch (ReviewException $e) {
             $form = new ReviewForm;
             $form->addError('rating', $e->getMessage());
@@ -56,6 +62,10 @@ class ReviewsController extends Controller
 
         if ($result instanceof ReviewForm) {
             return $this->failed($result);
+        }
+
+        if (! $user) {
+            return $this->succeeded($thanks);
         }
 
         return $this->succeeded(
