@@ -2,12 +2,15 @@
 
 namespace nineteenninetyfour\reviews\tests\unit;
 
+use craft\base\Element;
 use craft\db\Query;
+use craft\events\ModelEvent;
 use NineteenNinetyFour\Reviews\Core\Sync\SyncException;
 use nineteenninetyfour\reviews\elements\Review;
 use nineteenninetyfour\reviews\elements\ReviewStatus;
 use nineteenninetyfour\reviews\models\ImportOptions;
 use nineteenninetyfour\reviews\models\Source;
+use yii\base\Event;
 
 class ImportTest extends TestCase
 {
@@ -196,5 +199,55 @@ class ImportTest extends TestCase
         $this->plugin()->imports->import($this->plugin()->imports->read($csv)->reviews, new ImportOptions);
 
         $this->assertNull(Review::find()->one()->sourceUrl);
+    }
+
+    public function test_a_review_that_can_t_be_saved_keeps_the_sync_from_counting_as_done(): void
+    {
+        $this->entry('books', 'Refused', [], ['slug' => 'refused']);
+        $this->plugin()->sync->client = new FakeClient([['reviews' => [['id' => 1, 'rating' => 5, 'product_handle' => 'refused', 'body' => 'Fine', 'reviewer' => ['name' => 'Ok']]]]]);
+        $source = new Source(['type' => 'judgeme', 'name' => 'Judge.me', 'settings' => ['shop_domain' => 'x', 'api_token' => 't']]);
+        $this->plugin()->sync->save($source);
+
+        Event::on(Review::class, Element::EVENT_BEFORE_SAVE, $refuse = fn (ModelEvent $event) => $event->isValid = false);
+
+        try {
+            $report = $this->plugin()->sync->run($this->plugin()->sync->find($source->id));
+        } finally {
+            Event::off(Review::class, Element::EVENT_BEFORE_SAVE, $refuse);
+        }
+
+        $this->assertSame(1, $report->failed);
+        $saved = $this->plugin()->sync->find($source->id);
+        $this->assertNull($saved->lastSynced);
+        $this->assertStringContainsString('couldn’t be saved', (string) $saved->lastError);
+    }
+
+    public function test_a_source_syncs_once_at_a_time(): void
+    {
+        $source = new Source(['type' => 'feefo', 'name' => 'Feefo', 'settings' => ['merchant' => 'x']]);
+        $this->plugin()->sync->save($source);
+        \Craft::$app->getMutex()->acquire('reviews:sync:'.$source->id);
+
+        try {
+            $this->expectException(SyncException::class);
+            $this->plugin()->sync->run($source);
+        } finally {
+            \Craft::$app->getMutex()->release('reviews:sync:'.$source->id);
+        }
+    }
+
+    public function test_the_export_is_safe_to_open_in_a_spreadsheet_and_imports_as_it_was(): void
+    {
+        $entry = $this->entry('books', 'Formulas');
+        $this->review($entry, 4, ReviewStatus::Approved, ['title' => '=HYPERLINK("x")', 'name' => '-Dash']);
+        $file = \Craft::$app->getPath()->getTempPath().'/reviews-formula.csv';
+
+        $result = \Craft::$app->runAction('reviews/export', [$file]);
+        $csv = (string) file_get_contents($file);
+
+        $this->assertStringContainsString("'=HYPERLINK", $csv);
+        $imported = $this->plugin()->imports->read($csv)->reviews[0];
+        $this->assertSame('=HYPERLINK("x")', $imported->title);
+        $this->assertSame('-Dash', $imported->name);
     }
 }

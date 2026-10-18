@@ -4,6 +4,7 @@ namespace nineteenninetyfour\reviews\console\controllers;
 
 use craft\console\Controller;
 use craft\helpers\Console;
+use NineteenNinetyFour\Reviews\Core\Import\Csv;
 use nineteenninetyfour\reviews\elements\Review;
 use yii\console\ExitCode;
 
@@ -15,7 +16,7 @@ class ExportController extends Controller
 {
     public $defaultAction = 'index';
 
-    public const COLUMNS = ['id', 'entry', 'entry_title', 'rating', 'title', 'body', 'name', 'email', 'status', 'verified', 'reply', 'replied_at', 'created_at', 'source'];
+    public const COLUMNS = ['id', 'entry', 'entry_title', 'rating', 'title', 'body', 'name', 'email', 'status', 'verified', 'reply', 'replied_at', 'created_at', 'source', 'source_url'];
 
     /**
      * `php craft reviews/export reviews.csv`
@@ -35,7 +36,9 @@ class ExportController extends Controller
 
         foreach (Review::find()->status(null)->orderBy(['elements.id' => SORT_ASC])->each(200) as $review) {
             /** @var Review $review */
-            fputcsv($out, [
+            // Every cell is safe to open in a spreadsheet: nothing a reviewer
+            // wrote can run as a formula.
+            fputcsv($out, array_map([Csv::class, 'cell'], [
                 $review->uid,
                 $review->elementId,
                 $review->getElement()?->title,
@@ -50,7 +53,8 @@ class ExportController extends Controller
                 $review->dateReplied?->format(DATE_ATOM),
                 $review->dateCreated?->format(DATE_ATOM),
                 $review->source,
-            ], ',', '"', '');
+                $review->sourceUrl,
+            ]), ',', '"', '');
             $count++;
         }
 

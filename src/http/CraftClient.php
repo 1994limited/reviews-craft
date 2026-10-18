@@ -43,7 +43,10 @@ class CraftClient implements Client
 
             return is_array($data) ? $data : null;
         } catch (Throwable $e) {
-            Craft::warning(sprintf('Reviews: %s %s failed: %s', $method, preg_replace('/\?.*/', '', $url), $e->getMessage()), 'reviews');
+            // Without the keys: platforms take them in the query string,
+            // which connection errors repeat in their messages.
+            $message = (string) preg_replace('~(https?://[^\s?#]+)[?#][^\s]*~i', '$1', $e->getMessage());
+            Craft::warning(sprintf('Reviews: %s %s failed: %s: %s', $method, preg_replace('/[?#].*/s', '', $url), get_class($e), $message), 'reviews');
 
             return null;
         }

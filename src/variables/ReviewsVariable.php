@@ -8,6 +8,7 @@ use craft\elements\Asset;
 use craft\helpers\Html;
 use craft\helpers\Template;
 use craft\web\View;
+use NineteenNinetyFour\Reviews\Core\Import\Formats;
 use NineteenNinetyFour\Reviews\Core\Rating\Stars;
 use NineteenNinetyFour\Reviews\Core\Rating\Summary;
 use NineteenNinetyFour\Reviews\Core\Schema\SchemaBuilder;
@@ -114,7 +115,7 @@ class ReviewsVariable
      */
     public function platformName(?string $key): ?string
     {
-        return \NineteenNinetyFour\Reviews\Core\Import\Formats::platformName($key);
+        return Formats::platformName($key);
     }
 
     /**

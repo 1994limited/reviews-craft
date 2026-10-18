@@ -112,6 +112,23 @@ class Sync extends Component
             throw new SyncException(Craft::t('reviews', 'Reviews doesn’t sync from “{type}”.', ['type' => $source->type]));
         }
 
+        // One sync of a source at a time, however it was started.
+        $mutex = Craft::$app->getMutex();
+        $lock = 'reviews:sync:'.$source->id;
+
+        if (! $mutex->acquire($lock)) {
+            throw new SyncException(Craft::t('reviews', 'This source is syncing already. Try again in a few minutes.'));
+        }
+
+        try {
+            return $this->fetch($source, $platform, $all, $report);
+        } finally {
+            $mutex->release($lock);
+        }
+    }
+
+    protected function fetch(Source $source, \NineteenNinetyFour\Reviews\Core\Sync\Source $platform, bool $all, ImportReport $report): ImportReport
+    {
         $since = ! $all && $source->lastSynced ? DateTimeImmutable::createFromMutable($source->lastSynced)->sub(new DateInterval('P'.self::OVERLAP_DAYS.'D')) : null;
         $started = new DateTime;
 
@@ -129,6 +146,14 @@ class Sync extends Component
             $this->record($source, null, $e->getMessage());
 
             throw $e instanceof SyncException ? $e : new SyncException($e->getMessage(), 0, $e);
+        }
+
+        // A review that couldn't be saved is fetched again next time: the
+        // sync isn't counted as done until every one is.
+        if ($report->failed > 0) {
+            $this->record($source, null, Craft::t('reviews', '{count, plural, =1{1 review couldn’t be saved, so it’ll be fetched again next time: see the logs.} other{# reviews couldn’t be saved, so they’ll be fetched again next time: see the logs.}}', ['count' => $report->failed]));
+
+            return $report;
         }
 
         $this->record($source, $started, null);
