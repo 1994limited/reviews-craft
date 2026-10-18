@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0 - Unreleased
+## 1.0.0 - 2026-10-18
 
 ### Added
 - Reviews of entries and Craft Commerce products, as elements: ratings, criteria, titles, text, replies, notes, photos and helpful votes.
