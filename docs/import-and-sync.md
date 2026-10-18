@@ -19,6 +19,8 @@ Under **Reviews → Import**, upload a CSV or JSON file. Reviews reads:
 
 The format is worked out from the columns. Reviews are matched to Commerce products by SKU (or slug), and to entries by slug, page address or exact title.
 
+![An export previewed: three reviews would be added, and one matches nothing on the site](images/cp-import.png)
+
 **Preview** shows how many would be added, how many are here already, and which matched nothing, before anything is added. Then **Import**. A review is never added twice: importing the same file again adds nothing.
 
 Options:
@@ -48,6 +50,8 @@ Under **Reviews → Sync**, add a source:
 | Yotpo | App key, secret key | Only reviews changed since the last sync are fetched. |
 | Trustpilot | Business unit ID, API key, profile address, SKUs | Needs Trustpilot's paid API module. |
 
+![The Sync page, with a Feefo source](images/cp-sync.png)
+
 Keys are kept in the database, encrypted, not in Project Config. Or use environment variables (`$JUDGEME_TOKEN`).
 
 Each source syncs every 24 hours (**Hours between syncs**), from Craft's queue, while someone's using the control panel. To keep them up to date otherwise, run the sync from cron:
@@ -69,6 +73,9 @@ Google's terms don't allow keeping its reviews: the Business Profile API only fo
 Google's guidelines say not to mark up reviews gathered from other websites. So imported and synced reviews:
 
 - show where they came from ("From Trustpilot"), with a link to them there, as most platforms ask;
+
+    ![A review imported from Trustpilot, saying where it came from](images/imported.png)
+
 - don't count towards the average or go in your schema, unless you count an import as your own, or a source is from a platform that allows it (only Feefo does: **Count towards ratings and schema** on its source).
 
 Trustpilot asks that its reviews are shown with its logo and a link to your profile there: add those to your template beside them.

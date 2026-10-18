@@ -27,6 +27,10 @@ Other review plugins copy reviews in from Google, Yotpo or Trustpilot. Reviews c
 | --- | --- | --- | --- |
 | ![Readers' reviews of a book, with the average and breakdown](docs/images/reviews.png) | ![The review form](docs/images/form.png) | ![Reviews in the control panel](docs/images/cp-reviews.png) | ![One review, with the shop's reply](docs/images/cp-review.png) |
 
+| Importing an export | Syncing | An imported review |
+| --- | --- | --- |
+| ![An export previewed before importing](docs/images/cp-import.png) | ![The Sync page](docs/images/cp-sync.png) | ![A review from Trustpilot, saying where it came from](docs/images/imported.png) |
+
 The screenshots are from Dog-ear Books, a made-up bookshop. See [the demo](docs/demo.md).
 
 ## Requirements
