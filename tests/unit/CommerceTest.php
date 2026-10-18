@@ -8,11 +8,8 @@ use craft\commerce\elements\Product;
 use craft\commerce\elements\Variant;
 use craft\commerce\models\ProductType;
 use craft\commerce\models\ProductTypeSite;
-use craft\commerce\models\SiteStore;
-use craft\commerce\models\Store;
 use craft\commerce\Plugin as Commerce;
 use craft\commerce\services\Carts;
-use craft\commerce\services\Stores;
 use craft\db\Query;
 use craft\elements\User;
 use craft\helpers\Db;
@@ -28,21 +25,7 @@ class CommerceTest extends TestCase
     {
         parent::_before();
 
-        // The test site's project config is reset after Commerce installs,
-        // which takes its store away: put one back.
-        $stores = Commerce::getInstance()->getStores();
-
-        if (! $stores->getPrimaryStore()) {
-            $store = new Store(['name' => 'Dog-ear Books', 'handle' => 'primary', 'primary' => true]);
-            $this->assertTrue($stores->saveStore($store), json_encode($store->getErrors()));
-            Commerce::getInstance()->set('stores', Stores::class);
-            $stores = Commerce::getInstance()->getStores();
-
-            $siteStore = new SiteStore(['siteId' => Craft::$app->getSites()->getPrimarySite()->id, 'storeId' => $stores->getPrimaryStore()->id]);
-            $stores->saveSiteStore($siteStore);
-            Commerce::getInstance()->set('stores', Stores::class);
-        }
-
+        $this->commerceStore();
         Commerce::getInstance()->set('carts', Carts::class);
 
         $this->settings(['productTypes' => ['books'], 'requestsEnabled' => true, 'requestsDelayDays' => 0]);

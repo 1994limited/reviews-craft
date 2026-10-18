@@ -121,7 +121,7 @@ class Submissions extends Component
         $email = $user ? ($user->email ?: $form->email) : mb_strtolower((string) $form->email);
         $identity = $user ? 'user:'.$user->id : 'email:'.$email;
         $mutex = Craft::$app->getMutex();
-        $lock = 'reviews:submit:'.sha1($element->id.'|'.$identity);
+        $lock = 'reviews:submit:'.sha1($element->id.'|'.$siteId.'|'.$identity);
 
         // One review per person per element, even when two arrive at once.
         if (! $mutex->acquire($lock, 10)) {

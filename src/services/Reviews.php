@@ -104,15 +104,30 @@ class Reviews extends Component
         return array_values($criteria);
     }
 
+    /**
+     * The site reviews are kept apart by: the current one when each site has
+     * its own reviews, or null when they're shared.
+     */
+    public function siteScope(?int $siteId = null): ?int
+    {
+        if (Plugin::getInstance()->getSettings()->sites !== 'separate') {
+            return null;
+        }
+
+        return $siteId ?? Craft::$app->getSites()->getCurrentSite()->id;
+    }
+
     // Numbers.
 
     /**
      * An element's approved reviews in numbers, counting only those that
-     * count (this site's own, and imports an editor said to count). Cached
-     * until one of its reviews changes.
+     * count (this site's own, and imports an editor said to count), and
+     * with separate sites, only the current site's. Cached until one of
+     * its reviews changes.
      */
     public function summary(ElementInterface|int $element, ?int $siteId = null): Summary
     {
+        $siteId = $this->siteScope($siteId);
         $id = $element instanceof ElementInterface ? (int) $element->id : $element;
         $key = 'reviews:summary:'.$id.':'.($siteId ?? '*');
 
@@ -203,7 +218,7 @@ class Reviews extends Component
     {
         $reviews = [];
 
-        foreach (Review::find()->elementId($element->id)->counted()->limit(self::SCHEMA_REVIEWS)->all() as $review) {
+        foreach (Review::find()->elementId($element->id)->reviewSiteId($this->siteScope())->counted()->limit(self::SCHEMA_REVIEWS)->all() as $review) {
             $reviews[] = new SchemaReview(
                 rating: $review->rating,
                 author: $review->getDisplayName(),
@@ -220,11 +235,12 @@ class Reviews extends Component
 
     /**
      * The review someone already wrote of an element, if any: by their
-     * account when signed in, or else their email.
+     * account when signed in, or else their email. With separate sites,
+     * only on the current site.
      */
-    public function existing(int $elementId, ?User $user, ?string $email = null): ?Review
+    public function existing(int $elementId, ?User $user, ?string $email = null, ?int $siteId = null): ?Review
     {
-        $query = Review::find()->elementId($elementId)->status(null)->source(':empty:');
+        $query = Review::find()->elementId($elementId)->reviewSiteId($this->siteScope($siteId))->status(null)->source(':empty:');
 
         if ($user) {
             $query->userId($user->id);

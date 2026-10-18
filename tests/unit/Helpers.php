@@ -3,6 +3,9 @@
 namespace nineteenninetyfour\reviews\tests\unit;
 
 use Craft;
+use craft\commerce\models\SiteStore;
+use craft\commerce\models\Store;
+use craft\commerce\services\Stores;
 use craft\elements\Entry;
 use craft\elements\User;
 use craft\helpers\FileHelper;
@@ -166,5 +169,27 @@ trait Helpers
         $this->assertNotNull($response);
 
         return is_array($response->data) ? $response->data : (json_decode((string) $response->content, true) ?? []);
+    }
+
+    /**
+     * The test site's project config is reset after Commerce installs, which
+     * takes its store away: put one back.
+     */
+    protected function commerceStore(): void
+    {
+        $commerce = \craft\commerce\Plugin::getInstance();
+        $stores = $commerce->getStores();
+
+        if ($stores->getPrimaryStore()) {
+            return;
+        }
+
+        $store = new Store(['name' => 'Dog-ear Books', 'handle' => 'primary', 'primary' => true]);
+        $this->assertTrue($stores->saveStore($store), json_encode($store->getErrors()));
+        $commerce->set('stores', Stores::class);
+        $stores = $commerce->getStores();
+
+        $stores->saveSiteStore(new SiteStore(['siteId' => Craft::$app->getSites()->getPrimarySite()->id, 'storeId' => $stores->getPrimaryStore()->id]));
+        $commerce->set('stores', Stores::class);
     }
 }

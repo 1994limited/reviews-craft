@@ -18,6 +18,13 @@ class Settings extends Model
     /** Commerce product type handles whose products take reviews. */
     public array $productTypes = [];
 
+    /**
+     * "shared": an entry or product has the same reviews on every site (its
+     * translations, say). "separate": each site has its own reviews, average
+     * and schema (separate stores, say).
+     */
+    public string $sites = 'shared';
+
     /** "anyone", or "users" for signed-in users only. */
     public string $who = 'anyone';
 
@@ -110,6 +117,7 @@ class Settings extends Model
     {
         return [
             [['who'], 'in', 'range' => ['anyone', 'users']],
+            [['sites'], 'in', 'range' => ['shared', 'separate']],
             [['autoApprove'], 'in', 'range' => ['never', 'users', 'verified']],
             [['nameDisplay'], 'in', 'range' => ['short', 'full']],
             [['schemaOutput'], 'in', 'range' => ['manual', 'auto', 'seomatic', 'off']],

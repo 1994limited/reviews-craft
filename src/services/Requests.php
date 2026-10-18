@@ -165,7 +165,7 @@ class Requests extends Component
                 $product = Craft::$app->getElements()->getElementById((int) $product->id, $product::class, $siteId) ?? $product;
             }
 
-            if ($reviews->reviewable($product) && ! Review::find()->elementId($product->id)->email($email)->status(null)->exists()) {
+            if ($reviews->reviewable($product) && ! Review::find()->elementId($product->id)->reviewSiteId($reviews->siteScope($siteId))->email($email)->status(null)->exists()) {
                 $products[] = $product;
             }
         }

@@ -23,6 +23,19 @@
         values: settings.sections,
         warning: note('sections', overrides),
     }) }}
+    {% if craft.app.isMultiSite %}
+        {{ forms.selectField({
+            label: 'Reviews across sites'|t('reviews'),
+            name: 'settings[sites]',
+            options: [
+                { label: 'Shared: the same reviews on every site'|t('reviews'), value: 'shared' },
+                { label: 'Separate: each site has its own'|t('reviews'), value: 'separate' },
+            ],
+            value: settings.sites,
+            instructions: 'Shared suits translations of one site. Separate suits sites that are their own shops, with their own customers.'|t('reviews'),
+            warning: note('sites', overrides),
+        }) }}
+    {% endif %}
     {% if commerce %}
         {{ forms.checkboxSelectField({
             label: 'Product types'|t('reviews'),

@@ -6,6 +6,7 @@ use craft\elements\ElementCollection;
 use craft\gql\base\ElementResolver;
 use craft\helpers\Gql as GqlHelper;
 use nineteenninetyfour\reviews\elements\Review;
+use nineteenninetyfour\reviews\Plugin;
 use yii\base\UnknownMethodException;
 
 /**
@@ -19,7 +20,7 @@ class ReviewResolver extends ElementResolver
             return ElementCollection::empty();
         }
 
-        $query = Review::find();
+        $query = Review::find()->reviewSiteId(Plugin::getInstance()->reviews->siteScope());
 
         foreach ($arguments as $key => $value) {
             if ($key === 'status') {
