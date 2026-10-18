@@ -24,9 +24,10 @@ class PrivacyController extends Controller
     }
 
     /**
-     * Everything Reviews holds about an email address, as JSON.
+     * Everything Reviews holds about an email address, as JSON: printed, or
+     * saved to a file.
      */
-    public function actionExport(string $email): int
+    public function actionExport(string $email, ?string $file = null): int
     {
         $reviews = [];
 
@@ -45,10 +46,17 @@ class PrivacyController extends Controller
             ];
         }
 
-        $this->stdout(Json::encode([
+        $json = Json::encode([
             'reviews' => $reviews,
             'optedOutOfRequestEmails' => Plugin::getInstance()->requests->optedOut($email),
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n");
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n";
+
+        if ($file !== null) {
+            file_put_contents($file, $json);
+            $this->stdout('Saved '.count($reviews)." reviews to {$file}.\n");
+        } else {
+            $this->stdout($json);
+        }
 
         return ExitCode::OK;
     }

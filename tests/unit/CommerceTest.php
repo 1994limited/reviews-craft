@@ -8,7 +8,11 @@ use craft\commerce\elements\Product;
 use craft\commerce\elements\Variant;
 use craft\commerce\models\ProductType;
 use craft\commerce\models\ProductTypeSite;
+use craft\commerce\models\SiteStore;
+use craft\commerce\models\Store;
 use craft\commerce\Plugin as Commerce;
+use craft\commerce\services\Carts;
+use craft\commerce\services\Stores;
 use craft\db\Query;
 use craft\elements\User;
 use craft\helpers\StringHelper;
@@ -28,17 +32,17 @@ class CommerceTest extends TestCase
         $stores = Commerce::getInstance()->getStores();
 
         if (! $stores->getPrimaryStore()) {
-            $store = new \craft\commerce\models\Store(['name' => 'Dog-ear Books', 'handle' => 'primary', 'primary' => true]);
+            $store = new Store(['name' => 'Dog-ear Books', 'handle' => 'primary', 'primary' => true]);
             $this->assertTrue($stores->saveStore($store), json_encode($store->getErrors()));
-            Commerce::getInstance()->set('stores', \craft\commerce\services\Stores::class);
+            Commerce::getInstance()->set('stores', Stores::class);
             $stores = Commerce::getInstance()->getStores();
 
-            $siteStore = new \craft\commerce\models\SiteStore(['siteId' => Craft::$app->getSites()->getPrimarySite()->id, 'storeId' => $stores->getPrimaryStore()->id]);
+            $siteStore = new SiteStore(['siteId' => Craft::$app->getSites()->getPrimarySite()->id, 'storeId' => $stores->getPrimaryStore()->id]);
             $stores->saveSiteStore($siteStore);
-            Commerce::getInstance()->set('stores', \craft\commerce\services\Stores::class);
+            Commerce::getInstance()->set('stores', Stores::class);
         }
 
-        Commerce::getInstance()->set('carts', \craft\commerce\services\Carts::class);
+        Commerce::getInstance()->set('carts', Carts::class);
 
         $this->settings(['productTypes' => ['books'], 'requestsEnabled' => true, 'requestsDelayDays' => 0]);
     }
