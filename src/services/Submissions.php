@@ -121,7 +121,7 @@ class Submissions extends Component
         $email = $user ? ($user->email ?: $form->email) : mb_strtolower((string) $form->email);
         $identity = $user ? 'user:'.$user->id : 'email:'.$email;
         $mutex = Craft::$app->getMutex();
-        $lock = 'reviews:submit:'.sha1($element->id.'|'.$siteId.'|'.$identity);
+        $lock = 'reviews:submit:'.sha1($element->id.'|'.(Plugin::getInstance()->reviews->siteScope($siteId) ?? 'shared').'|'.$identity);
 
         // One review per person per element, even when two arrive at once.
         if (! $mutex->acquire($lock, 10)) {
@@ -155,10 +155,20 @@ class Submissions extends Component
         $form->keptPhotos = $existing ? max(0, count($existing->photos) - count($form->removePhotos)) : 0;
 
         if (Plugin::getInstance()->photos->enabled()) {
-            $form->photos = UploadedFile::getInstancesByName('photos');
+            $form->photos = $this->uploadedPhotos();
         }
 
         return $form;
+    }
+
+    /**
+     * The photos sent with the form: only files PHP itself received.
+     *
+     * @return array<int, UploadedFile>
+     */
+    protected function uploadedPhotos(): array
+    {
+        return UploadedFile::getInstancesByName('photos');
     }
 
     /**
@@ -212,8 +222,15 @@ class Submissions extends Component
             // A changed review goes back to an editor, unless it'd be
             // published straight away anyway.
             if ($this->autoApproves($review)) {
-                $review->reviewStatus = $review->isApproved() ? ReviewStatus::Approved : ReviewStatus::Pending;
-                $saved = $plugin->reviews->save($review, false) && $plugin->reviews->approve($review);
+                // Saved waiting, then approved, which puts any new photos on
+                // the site. If approving fails, the review is saved, waiting
+                // for an editor, which is a state it can safely be left in.
+                $review->reviewStatus = ReviewStatus::Pending;
+                $saved = $plugin->reviews->save($review, false);
+
+                if ($saved && ! $plugin->reviews->approve($review)) {
+                    Craft::warning('Reviews couldn’t approve review '.$review->id.' straight away; it’s waiting for an editor.', 'reviews');
+                }
             } elseif ($existing && ! $review->isPending()) {
                 $saved = $plugin->reviews->hold($review);
             } else {

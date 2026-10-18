@@ -46,7 +46,7 @@ class ReviewsVariable
 
         // With separate sites, the current site's, unless asked otherwise.
         if (! array_key_exists('reviewSiteId', $criteria)) {
-            $query->reviewSiteId(Plugin::getInstance()->reviews->siteScope());
+            $query->reviewSiteId(Plugin::getInstance()->reviews->siteScope($element?->siteId));
         }
 
         return $query;

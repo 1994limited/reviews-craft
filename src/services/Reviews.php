@@ -127,7 +127,8 @@ class Reviews extends Component
      */
     public function summary(ElementInterface|int $element, ?int $siteId = null): Summary
     {
-        $siteId = $this->siteScope($siteId);
+        // With separate sites, the element's own site's, unless one's given.
+        $siteId = $this->siteScope($siteId ?? ($element instanceof ElementInterface ? $element->siteId : null));
         $id = $element instanceof ElementInterface ? (int) $element->id : $element;
         $key = 'reviews:summary:'.$id.':'.($siteId ?? '*');
 
@@ -218,7 +219,7 @@ class Reviews extends Component
     {
         $reviews = [];
 
-        foreach (Review::find()->elementId($element->id)->reviewSiteId($this->siteScope())->counted()->limit(self::SCHEMA_REVIEWS)->all() as $review) {
+        foreach (Review::find()->elementId($element->id)->reviewSiteId($this->siteScope($element->siteId))->counted()->limit(self::SCHEMA_REVIEWS)->all() as $review) {
             $reviews[] = new SchemaReview(
                 rating: $review->rating,
                 author: $review->getDisplayName(),

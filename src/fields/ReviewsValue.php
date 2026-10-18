@@ -36,7 +36,7 @@ class ReviewsValue
      */
     public function getReviews(): ReviewQuery
     {
-        return Review::find()->elementId($this->element->id ?? 0)->reviewSiteId(Plugin::getInstance()->reviews->siteScope());
+        return Review::find()->elementId($this->element->id ?? 0)->reviewSiteId(Plugin::getInstance()->reviews->siteScope($this->element?->siteId));
     }
 
     public function __toString(): string

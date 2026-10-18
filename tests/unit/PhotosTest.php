@@ -4,8 +4,11 @@ namespace nineteenninetyfour\reviews\tests\unit;
 
 use craft\elements\Asset;
 use craft\web\UploadedFile;
+use NineteenNinetyFour\Reviews\Core\Spam\TimeToken;
 use nineteenninetyfour\reviews\elements\Review;
 use nineteenninetyfour\reviews\elements\ReviewStatus;
+use nineteenninetyfour\reviews\services\Spam;
+use nineteenninetyfour\reviews\services\Submissions;
 
 class PhotosTest extends TestCase
 {
@@ -83,5 +86,49 @@ class PhotosTest extends TestCase
         $this->plugin()->reviews->delete($review);
 
         $this->assertNull(Asset::find()->id($assetId)->one());
+    }
+
+    public function test_new_photos_on_a_changed_auto_approved_review_go_on_the_site(): void
+    {
+        \Craft::$app->getRequest()->enableCsrfValidation = false;
+        $this->plugin()->controllerNamespace = 'nineteenninetyfour\\reviews\\controllers';
+        $this->settings(['autoApprove' => 'users']);
+        $entry = $this->entry();
+        $user = $this->actingAs([]);
+        $review = $this->review($entry, 5, ReviewStatus::Approved, ['userId' => $user->id, 'email' => $user->email]);
+        $upload = $this->upload();
+
+        // As if PHP had received the upload.
+        $this->plugin()->set('submissions', new class($upload) extends Submissions
+        {
+            public function __construct(private UploadedFile $upload)
+            {
+                parent::__construct();
+            }
+
+            protected function uploadedPhotos(): array
+            {
+                return [$this->upload];
+            }
+        });
+
+        try {
+            $data = $this->json($this->action('reviews/reviews/submit', body: [
+                'elementId' => $entry->id,
+                'rating' => 4,
+                'body' => 'Now with a photo.',
+                Spam::TIME_FIELD => (new TimeToken((string) \Craft::$app->getConfig()->getGeneral()->securityKey))->issue(time() - 60),
+            ]));
+        } finally {
+            $this->plugin()->set('submissions', Submissions::class);
+            \Craft::$app->getUser()->setIdentity(null);
+            $this->plugin()->controllerNamespace = 'nineteenninetyfour\\reviews\\console\\controllers';
+        }
+
+        $this->assertSame('approved', $data['review']['status'] ?? null, json_encode($data));
+        $loaded = Review::find()->id($review->id)->one();
+        $this->assertSame(4, $loaded->rating);
+        $this->assertCount(1, $loaded->photos);
+        $this->assertArrayHasKey('asset', $loaded->photos[0]);
     }
 }

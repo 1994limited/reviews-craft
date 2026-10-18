@@ -68,9 +68,10 @@ class SitesTest extends TestCase
 
         Craft::$app->getSites()->setCurrentSite($this->second);
 
-        $this->assertSame(1.0, $this->plugin()->reviews->summary($entry)->average());
-        $this->assertSame(1, (int) $variable->reviews($entry)->count());
-        $this->assertSame(1, $this->plugin()->reviews->schema($entry)['aggregateRating']['reviewCount']);
+        // The entry's own site decides, whatever site the request is on.
+        $this->assertSame(5.0, $this->plugin()->reviews->summary($entry)->average());
+        $this->assertSame(1.0, $this->plugin()->reviews->summary($entry, $this->second->id)->average());
+        $this->assertSame(1, (int) $variable->reviews($entry, ['reviewSiteId' => $this->second->id])->count());
 
         // Someone who reviewed it on the first site can review it here too.
         $this->assertNull($this->plugin()->reviews->existing($entry->id, null, 'same@example.com'));
