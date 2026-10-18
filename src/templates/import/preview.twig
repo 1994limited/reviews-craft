@@ -29,7 +29,7 @@
                 <tbody>
                     {% for example in preview.examples %}
                         <tr>
-                            <td>{{ '★'|repeat(example.review.rating) }}</td>
+                            <td>{% for i in 1..example.review.rating %}★{% endfor %}</td>
                             <td>{{ (example.review.title ?: example.review.body)|slice(0, 80) }}</td>
                             <td>{{ example.review.name }}</td>
                             <td>{{ example.element ? example.element.title : '–' }}</td>

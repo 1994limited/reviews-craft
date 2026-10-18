@@ -25,7 +25,7 @@
 
 {% block content %}
     <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 12px;">
-        <span style="color: #e5a00d; font-size: 1.3em; letter-spacing: 2px;" title="{{ '{rating} out of 5'|t('reviews', { rating: review.rating }) }}">{{ '★'|repeat(review.rating) }}{{ '☆'|repeat(5 - review.rating) }}</span>
+        <span style="color: #e5a00d; font-size: 1.3em; letter-spacing: 2px;" title="{{ '{rating} out of 5'|t('reviews', { rating: review.rating }) }}">{% for i in 1..5 %}{{ i <= review.rating ? '★' : '☆' }}{% endfor %}</span>
         {% if review.verified %}<span class="badge">{{ 'Verified buyer'|t('reviews') }}</span>{% endif %}
     </div>
 
