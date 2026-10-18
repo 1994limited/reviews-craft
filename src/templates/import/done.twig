@@ -1,0 +1,15 @@
+{% extends '_layouts/cp' %}
+{% set title = 'Import reviews'|t('reviews') %}
+{% set selectedSubnavItem = 'import' %}
+
+{% block content %}
+    <h2>{{ 'Done'|t('reviews') }}</h2>
+    <ul class="bullets">
+        <li>{{ '{count, plural, =1{1 review added.} other{# reviews added.}}'|t('reviews', { count: report.added }) }}</li>
+        {% if report.unchanged %}<li>{{ '{count, plural, =1{1 was here already.} other{# were here already.}}'|t('reviews', { count: report.unchanged }) }}</li>{% endif %}
+        {% if report.unmatched|length %}<li>{{ '{count, plural, =1{1 matched nothing, and was left out.} other{# matched nothing, and were left out.}}'|t('reviews', { count: report.unmatched|length }) }}</li>{% endif %}
+        {% if report.failed %}<li class="error">{{ '{count, plural, =1{1 couldn’t be saved: see the logs.} other{# couldn’t be saved: see the logs.}}'|t('reviews', { count: report.failed }) }}</li>{% endif %}
+    </ul>
+    <a class="btn submit" href="{{ url('reviews') }}">{{ 'See the reviews'|t('reviews') }}</a>
+    <a class="btn" href="{{ url('reviews/import') }}">{{ 'Import another file'|t('reviews') }}</a>
+{% endblock %}

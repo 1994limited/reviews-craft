@@ -1,0 +1,151 @@
+{% extends '_layouts/cp' %}
+{% import '_includes/forms' as forms %}
+
+{% set title = review.uiLabel %}
+{% set selectedSubnavItem = 'reviews' %}
+{% set crumbs = [{ label: 'Reviews'|t('reviews'), url: url('reviews') }] %}
+{% set status = review.status %}
+
+{% block actionButton %}
+    <div class="flex">
+        {% if status != 'approved' %}
+            <form method="post">{{ csrfInput() }}{{ actionInput('reviews/moderate/approve') }}{{ hiddenInput('reviewId', review.id) }}{{ redirectInput(review.cpEditUrl) }}
+                <button class="btn submit">{{ 'Approve'|t('reviews') }}</button></form>
+        {% endif %}
+        {% if status != 'rejected' %}
+            <form method="post">{{ csrfInput() }}{{ actionInput('reviews/moderate/reject') }}{{ hiddenInput('reviewId', review.id) }}{{ redirectInput(review.cpEditUrl) }}
+                <button class="btn">{{ 'Reject'|t('reviews') }}</button></form>
+        {% endif %}
+        {% if status != 'spam' %}
+            <form method="post">{{ csrfInput() }}{{ actionInput('reviews/moderate/spam') }}{{ hiddenInput('reviewId', review.id) }}{{ redirectInput(review.cpEditUrl) }}
+                <button class="btn">{{ 'Spam'|t('reviews') }}</button></form>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 12px;">
+        <span style="color: #e5a00d; font-size: 1.3em; letter-spacing: 2px;" title="{{ '{rating} out of 5'|t('reviews', { rating: review.rating }) }}">{{ '★'|repeat(review.rating) }}{{ '☆'|repeat(5 - review.rating) }}</span>
+        {% if review.verified %}<span class="badge">{{ 'Verified buyer'|t('reviews') }}</span>{% endif %}
+    </div>
+
+    {% if review.title %}<h2>{{ review.title }}</h2>{% endif %}
+    {% if review.body %}<div class="readable" style="margin-bottom: 18px;">{{ review.body|nl2br }}</div>{% endif %}
+
+    {% if review.ratings|length %}
+        <ul style="margin-bottom: 18px;">
+            {% for criterion in criteria %}
+                {% if review.ratings[criterion.handle] is defined %}<li>{{ criterion.label }}: {{ review.ratings[criterion.handle] }}/5</li>{% endif %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if review.photos|length %}
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px;">
+            {% for photo in review.photos %}
+                {% if photo.pending is defined %}
+                    <a href="{{ actionUrl('reviews/moderate/photo', { reviewId: review.id, index: loop.index0 }) }}" target="_blank"><img src="{{ actionUrl('reviews/moderate/photo', { reviewId: review.id, index: loop.index0 }) }}" alt="" style="max-height: 160px; border-radius: 4px;"></a>
+                {% elseif photo.asset is defined %}
+                    {% set asset = craft.assets.id(photo.asset).one() %}
+                    {% if asset %}<a href="{{ asset.cpEditUrl }}"><img src="{{ asset.url }}" alt="{{ asset.alt }}" style="max-height: 160px; border-radius: 4px;"></a>{% endif %}
+                {% elseif photo.url is defined %}
+                    <a href="{{ photo.url }}" target="_blank" rel="noopener"><img src="{{ photo.url }}" alt="" style="max-height: 160px; border-radius: 4px;"></a>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% if review.hasPendingPhotos %}<p class="light">{{ 'Photos go on the site when the review is approved.'|t('reviews') }}</p>{% endif %}
+    {% endif %}
+
+    <hr>
+
+    <form method="post">
+        {{ csrfInput() }}{{ actionInput('reviews/moderate/reply') }}{{ hiddenInput('reviewId', review.id) }}{{ redirectInput(review.cpEditUrl) }}
+        {{ forms.textareaField({
+            label: 'Your reply'|t('reviews'),
+            instructions: 'Shown under the review, from the site. Leave it empty for no reply.'|t('reviews'),
+            name: 'reply',
+            value: review.reply,
+            rows: 4,
+        }) }}
+        <button class="btn">{{ 'Save reply'|t('reviews') }}</button>
+    </form>
+
+    <hr>
+
+    <form method="post">
+        {{ csrfInput() }}{{ actionInput('reviews/moderate/note') }}{{ hiddenInput('reviewId', review.id) }}{{ redirectInput(review.cpEditUrl) }}
+        {{ forms.textareaField({
+            label: 'Note'|t('reviews'),
+            instructions: 'For editors only: never shown on the site.'|t('reviews'),
+            name: 'note',
+            value: review.note,
+            rows: 2,
+        }) }}
+        <button class="btn">{{ 'Save note'|t('reviews') }}</button>
+    </form>
+{% endblock %}
+
+{% block details %}
+    <div class="meta read-only">
+        <div class="data">
+            <h5 class="heading">{{ 'Status'|t('app') }}</h5>
+            {% set statusInfo = review.statuses()[status] %}
+            <div class="value flex"><span class="status {{ statusInfo.color }}"></span>{{ statusInfo.label }}</div>
+        </div>
+        <div class="data">
+            <h5 class="heading">{{ 'Of'|t('reviews') }}</h5>
+            <div class="value">{% if element %}<a href="{{ element.cpEditUrl }}">{{ element.title }}</a>{% else %}–{% endif %}</div>
+        </div>
+        <div class="data">
+            <h5 class="heading">{{ 'Name'|t('reviews') }}</h5>
+            <div class="value">{{ review.name ?: '–' }}</div>
+        </div>
+        <div class="data">
+            <h5 class="heading">{{ 'Email'|t('reviews') }}</h5>
+            <div class="value">{% if review.email %}<a href="mailto:{{ review.email }}">{{ review.email }}</a>{% else %}–{% endif %}</div>
+        </div>
+        {% if review.user %}
+            <div class="data">
+                <h5 class="heading">{{ 'User'|t('app') }}</h5>
+                <div class="value"><a href="{{ review.user.cpEditUrl }}">{{ review.user.friendlyName }}</a></div>
+            </div>
+        {% endif %}
+        {% if review.orderId %}
+            <div class="data">
+                <h5 class="heading">{{ 'Order'|t('reviews') }}</h5>
+                <div class="value"><a href="{{ cpUrl('commerce/orders/' ~ review.orderId) }}">#{{ review.orderId }}</a></div>
+            </div>
+        {% endif %}
+        <div class="data">
+            <h5 class="heading">{{ 'Source'|t('reviews') }}</h5>
+            <div class="value">{{ review.isOwn ? 'This site'|t('reviews') : craft.reviews.sourceLabel(review.source) }}{% if review.sourceUrl %} · <a href="{{ review.sourceUrl }}" target="_blank" rel="noopener">{{ 'View'|t('reviews') }}</a>{% endif %}</div>
+        </div>
+        {% if not review.isOwn %}
+            <div class="data">
+                <h5 class="heading">{{ 'Counts towards rating'|t('reviews') }}</h5>
+                <div class="value">{{ review.counted ? 'Yes'|t('app') : 'No'|t('app') }}</div>
+            </div>
+        {% endif %}
+        <div class="data">
+            <h5 class="heading">{{ 'Helpful'|t('reviews') }}</h5>
+            <div class="value">{{ review.helpful }}</div>
+        </div>
+        <div class="data">
+            <h5 class="heading">{{ 'Written'|t('reviews') }}</h5>
+            <div class="value">{{ review.dateCreated|datetime('short') }}</div>
+        </div>
+        {% if review.dateApproved %}
+            <div class="data">
+                <h5 class="heading">{{ 'Approved'|t('reviews') }}</h5>
+                <div class="value">{{ review.dateApproved|datetime('short') }}</div>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if canDelete %}
+        <form method="post" style="margin-top: 14px;" onsubmit="return confirm('{{ 'Delete this review for good?'|t('reviews')|e('js') }}')">
+            {{ csrfInput() }}{{ actionInput('reviews/moderate/delete') }}{{ hiddenInput('reviewId', review.id) }}
+            <button class="btn small" style="color: var(--error-color);">{{ 'Delete review'|t('reviews') }}</button>
+        </form>
+    {% endif %}
+{% endblock %}

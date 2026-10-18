@@ -1,0 +1,122 @@
+allowLineBreaksInTitles: false
+color: null
+description: null
+fieldLayouts:
+  51ddf4aa-695e-408f-88c3-484b4d383f4d:
+    cardThumbAlignment: end
+    tabs:
+      -
+        elementCondition: null
+        elements:
+          -
+            autocapitalize: true
+            autocomplete: false
+            autocorrect: true
+            class: null
+            dateAdded: null
+            disabled: false
+            elementCondition: null
+            id: null
+            inputType: null
+            instructions: null
+            label: null
+            max: null
+            min: null
+            name: null
+            orientation: null
+            placeholder: null
+            readonly: false
+            required: true
+            size: null
+            step: null
+            tip: null
+            title: null
+            type: craft\fieldlayoutelements\entries\EntryTitleField
+            uid: 32583555-79ef-4757-b768-673c7e00627a
+            userCondition: null
+            warning: null
+            width: 100
+          -
+            dateAdded: null
+            editCondition: null
+            elementCondition: null
+            elementEditCondition: null
+            fieldUid: 6594aa4c-e753-4e2d-9139-8b27953f3cc0 # Author
+            handle: null
+            instructions: null
+            label: null
+            oldFieldUid: null
+            required: false
+            tip: null
+            type: craft\fieldlayoutelements\CustomField
+            uid: 3b1327e1-149f-4a8a-a17e-20211bc5f8e8
+            userCondition: null
+            warning: null
+            width: 100
+          -
+            dateAdded: null
+            editCondition: null
+            elementCondition: null
+            elementEditCondition: null
+            fieldUid: 996df2ec-8882-4210-849d-a386f289c075 # Price
+            handle: null
+            instructions: null
+            label: null
+            oldFieldUid: null
+            required: false
+            tip: null
+            type: craft\fieldlayoutelements\CustomField
+            uid: 7ce1e1cb-03c7-4a34-8b10-8eb27ea06c0e
+            userCondition: null
+            warning: null
+            width: 100
+          -
+            dateAdded: null
+            editCondition: null
+            elementCondition: null
+            elementEditCondition: null
+            fieldUid: 0cfa183f-9b1c-426e-850a-1958ff0386bd # Blurb
+            handle: null
+            instructions: null
+            label: null
+            oldFieldUid: null
+            required: false
+            tip: null
+            type: craft\fieldlayoutelements\CustomField
+            uid: efa215bf-af4d-4903-9779-6a6ece03fb1c
+            userCondition: null
+            warning: null
+            width: 100
+          -
+            dateAdded: null
+            editCondition: null
+            elementCondition: null
+            elementEditCondition: null
+            fieldUid: 1ec0f01c-4bf5-4d47-a02e-1573b5501461 # Cover
+            handle: null
+            instructions: null
+            label: null
+            oldFieldUid: null
+            required: false
+            tip: null
+            type: craft\fieldlayoutelements\CustomField
+            uid: 05438477-0e68-4678-bb78-94ac0089dae3
+            userCondition: null
+            warning: null
+            width: 100
+        name: Content
+        uid: c3df9254-2f21-4b3c-ac97-3c5234ded543
+        userCondition: null
+    thumbFieldKey: null
+handle: book
+hasTitleField: true
+icon: null
+name: Book
+showSlugField: true
+showStatusField: true
+slugTranslationKeyFormat: null
+slugTranslationMethod: site
+titleFormat: null
+titleTranslationKeyFormat: null
+titleTranslationMethod: site
+uiLabelFormat: '{title}'

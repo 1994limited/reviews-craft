@@ -1,0 +1,90 @@
+{
+    "name": "1994/reviews-craft",
+    "description": "Reviews and star ratings for Craft CMS, collected on your own site: moderation, replies, photos, helpful votes, verified buyers with Craft Commerce, review request emails, review schema, and import or sync from other platforms.",
+    "type": "craft-plugin",
+    "license": "proprietary",
+    "keywords": [
+        "craft",
+        "cms",
+        "craftcms",
+        "craft-plugin",
+        "reviews",
+        "ratings",
+        "stars",
+        "testimonials",
+        "commerce",
+        "schema"
+    ],
+    "authors": [
+        {
+            "name": "1994",
+            "email": "hello@1994.co.uk",
+            "homepage": "https://1994.co.uk"
+        }
+    ],
+    "support": {
+        "email": "hello@1994.co.uk",
+        "docs": "https://github.com/1994limited/reviews-craft/blob/main/docs/README.md",
+        "issues": "https://github.com/1994limited/reviews-craft/issues",
+        "source": "https://github.com/1994limited/reviews-craft"
+    },
+    "require": {
+        "php": "^8.2",
+        "1994/reviews-core": "^1.0@dev",
+        "craftcms/cms": "^5.6"
+    },
+    "require-dev": {
+        "codeception/codeception": "^5.2",
+        "codeception/module-asserts": "^3.0",
+        "codeception/module-yii2": "^1.1.9",
+        "craftcms/commerce": "^5.0",
+        "craftcms/phpstan": "dev-main",
+        "laravel/pint": "^1.18",
+        "phpstan/phpstan": "^2.1",
+        "vlucas/phpdotenv": "^5.4"
+    },
+    "suggest": {
+        "craftcms/commerce": "For verified buyer badges, buyers-only reviews and review request emails after an order.",
+        "nystudio107/craft-seomatic": "To add review schema to SEOmatic's own JSON-LD."
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../reviews-core"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "nineteenninetyfour\\reviews\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "nineteenninetyfour\\reviews\\tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "handle": "reviews",
+        "name": "Reviews",
+        "developer": "1994",
+        "developerUrl": "https://1994.co.uk",
+        "documentationUrl": "https://github.com/1994limited/reviews-craft/blob/main/docs/README.md",
+        "class": "nineteenninetyfour\\reviews\\Plugin",
+        "changelogUrl": "https://raw.githubusercontent.com/1994limited/reviews-craft/main/CHANGELOG.md"
+    },
+    "config": {
+        "sort-packages": true,
+        "platform": {
+            "php": "8.2"
+        },
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true,
+            "craftcms/plugin-installer": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "scripts": {
+        "test": "codecept run"
+    }
+}

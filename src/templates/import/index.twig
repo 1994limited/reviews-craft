@@ -1,0 +1,15 @@
+{% extends '_layouts/cp' %}
+{% import '_includes/forms' as forms %}
+{% set title = 'Import reviews'|t('reviews') %}
+{% set selectedSubnavItem = 'import' %}
+
+{% block content %}
+    <p>{{ 'Add reviews from a CSV or JSON file another platform exported: {formats}, or any file with a rating column. Nothing is added until you’ve seen what would be.'|t('reviews', { formats: craft.reviews.importFormats|values|join(', ') }) }}</p>
+    <form method="post" enctype="multipart/form-data" accept-charset="UTF-8">
+        {{ csrfInput() }}
+        {{ actionInput('reviews/import/preview') }}
+        {{ forms.fileField({ label: 'File'|t('reviews'), name: 'file', accept: '.csv,.json,.txt,text/csv,application/json' }) }}
+        {% include 'reviews/import/_options' %}
+        <button class="btn submit">{{ 'Preview'|t('reviews') }}</button>
+    </form>
+{% endblock %}

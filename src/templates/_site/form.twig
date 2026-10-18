@@ -1,0 +1,93 @@
+{#
+    The review form. On a page cached whole (by Blitz, say), make this part
+    dynamic so it's right for each visitor: see the docs on caching.
+#}
+{% set form = craft.reviews.formOptions(element, reviewForm) %}
+{% if wrap %}<div class="reviews-ui">{% endif %}
+<div id="write-a-review">
+    <form class="reviews-ui__form" id="reviews-form" method="post" enctype="multipart/form-data" accept-charset="UTF-8">
+        {{ craft.reviews.formFields(element) }}
+        {{ redirectInput(options.redirect ?? (element.url ~ '#reviews')) }}
+
+        <h2 class="reviews-ui__heading">{{ form.editing ? 'Your review'|t('reviews') : 'Write a review'|t('reviews') }}</h2>
+
+        {% if form.refusal %}
+            <p>{{ form.refusalMessage }}</p>
+        {% else %}
+            {% if form.editing %}
+                <p class="reviews-ui__muted">{{ form.review.isPending ? 'Your review is waiting to be checked. You can still change it.'|t('reviews') : 'Changing your review sends it to be checked again.'|t('reviews') }}</p>
+            {% endif %}
+
+            {% if form.errors|length %}
+                <div class="reviews-ui__message reviews-ui__message--error" role="alert">
+                    <ul>{% for messages in form.errors %}{% for message in messages %}<li>{{ message }}</li>{% endfor %}{% endfor %}</ul>
+                </div>
+            {% endif %}
+
+            <fieldset class="reviews-ui__rating">
+                <legend class="reviews-ui__label">{{ 'Your rating'|t('reviews') }}</legend>
+                <div class="reviews-ui__rating-stars">
+                    {% for value in 1..5 %}
+                        <input type="radio" id="reviews-rating-{{ value }}" name="rating" value="{{ value }}" required {{ form.old.rating == value ? 'checked' }}>
+                        <label for="reviews-rating-{{ value }}" title="{{ '{count, plural, =1{1 star} other{# stars}}'|t('reviews', { count: value }) }}"><span aria-hidden="true">★</span><span class="reviews-ui__sr-only">{{ '{count, plural, =1{1 star} other{# stars}}'|t('reviews', { count: value }) }}</span></label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+
+            {% if form.criteria|length %}
+                <div class="reviews-ui__row">
+                    {% for criterion in form.criteria %}
+                        <label class="reviews-ui__field">
+                            <span class="reviews-ui__label">{{ criterion.label }} <span class="reviews-ui__muted">{{ '(optional)'|t('reviews') }}</span></span>
+                            <select class="reviews-ui__input" name="ratings[{{ criterion.handle }}]">
+                                <option value="">–</option>
+                                {% for value in 5..1 %}<option value="{{ value }}" {{ (form.old.ratings[criterion.handle] ?? null) == value ? 'selected' }}>{{ '{count, plural, =1{1 star} other{# stars}}'|t('reviews', { count: value }) }}</option>{% endfor %}
+                            </select>
+                        </label>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <label class="reviews-ui__field">
+                <span class="reviews-ui__label">{{ 'Title'|t('reviews') }} {% if not form.titleRequired %}<span class="reviews-ui__muted">{{ '(optional)'|t('reviews') }}</span>{% endif %}</span>
+                <input class="reviews-ui__input" name="title" value="{{ form.old.title }}" maxlength="{{ form.titleLimit }}" {{ form.titleRequired ? 'required' }}>
+            </label>
+
+            <label class="reviews-ui__field">
+                <span class="reviews-ui__label">{{ 'Your review'|t('reviews') }} {% if not form.bodyRequired %}<span class="reviews-ui__muted">{{ '(optional)'|t('reviews') }}</span>{% endif %}</span>
+                <textarea class="reviews-ui__input" name="body" rows="5" maxlength="{{ form.bodyLimit }}" {{ form.bodyRequired ? 'required' }}>{{ form.old.body }}</textarea>
+            </label>
+
+            {% if form.needsName %}
+                <div class="reviews-ui__row">
+                    <label class="reviews-ui__field">
+                        <span class="reviews-ui__label">{{ 'Name'|t('reviews') }}</span>
+                        <input class="reviews-ui__input" name="name" value="{{ form.old.name }}" maxlength="{{ form.nameLimit }}" autocomplete="name" required>
+                    </label>
+                    <label class="reviews-ui__field">
+                        <span class="reviews-ui__label">{{ 'Email'|t('reviews') }} <span class="reviews-ui__muted">{{ '(never shown)'|t('reviews') }}</span></span>
+                        <input class="reviews-ui__input" type="email" name="email" value="{{ form.old.email }}" autocomplete="email" required>
+                    </label>
+                </div>
+            {% endif %}
+
+            {% if form.photosEnabled %}
+                {% if form.existingPhotos|length %}
+                    <div class="reviews-ui__photos">
+                        {% for photo in form.existingPhotos %}
+                            <label class="reviews-ui__muted">{% if photo.url %}<img src="{{ photo.url }}" alt="">{% else %}{{ 'Waiting to be checked'|t('reviews') }}{% endif %}<span><input type="checkbox" name="removePhotos[]" value="{{ photo.index }}"> {{ 'Remove'|t('reviews') }}</span></label>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <label class="reviews-ui__field">
+                    <span class="reviews-ui__label">{{ 'Photos (up to {max})'|t('reviews', { max: form.maxPhotos }) }} <span class="reviews-ui__muted">{{ '(optional)'|t('reviews') }}</span></span>
+                    <input class="reviews-ui__input" type="file" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple>
+                </label>
+            {% endif %}
+
+            {% if form.moderated %}<p class="reviews-ui__muted">{{ 'Reviews are checked before they appear.'|t('reviews') }}</p>{% endif %}
+            <button type="submit" class="reviews-ui__button">{{ form.editing ? 'Update review'|t('reviews') : 'Send review'|t('reviews') }}</button>
+        {% endif %}
+    </form>
+</div>
+{% if wrap %}</div>{% endif %}

@@ -1,0 +1,10 @@
+# Left out of the package Composer installs.
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/tests export-ignore
+/codeception.yml export-ignore
+/phpstan.neon export-ignore
+/pint.json export-ignore
+
+* text=auto
+/docs/images export-ignore

@@ -1,0 +1,180 @@
+{% extends '_layouts/cp' %}
+{% import '_includes/forms' as forms %}
+
+{% set title = 'Reviews settings'|t('reviews') %}
+{% set selectedSubnavItem = 'settings' %}
+{% set fullPageForm = true %}
+
+{% macro note(name, overrides) %}
+    {%- if name in overrides -%}{{ 'Set in config/reviews.php.'|t('reviews') }}{%- endif -%}
+{% endmacro %}
+{% from _self import note %}
+
+{% block content %}
+    {{ actionInput('reviews/settings/save') }}
+    {{ redirectInput('reviews/settings') }}
+
+    <h2>{{ 'What can be reviewed'|t('reviews') }}</h2>
+    {{ forms.checkboxSelectField({
+        label: 'Sections'|t('reviews'),
+        instructions: 'Entries in these sections take reviews. A Reviews field can switch them off entry by entry.'|t('reviews'),
+        name: 'settings[sections]',
+        options: sections,
+        values: settings.sections,
+        warning: note('sections', overrides),
+    }) }}
+    {% if commerce %}
+        {{ forms.checkboxSelectField({
+            label: 'Product types'|t('reviews'),
+            name: 'settings[productTypes]',
+            options: productTypes,
+            values: settings.productTypes,
+            warning: note('productTypes', overrides),
+        }) }}
+    {% endif %}
+
+    <hr>
+    <h2>{{ 'Who can write one'|t('reviews') }}</h2>
+    {{ forms.selectField({
+        label: 'Reviewers'|t('reviews'),
+        name: 'settings[who]',
+        options: [
+            { label: 'Anyone'|t('reviews'), value: 'anyone' },
+            { label: 'Signed-in users only'|t('reviews'), value: 'users' },
+        ],
+        value: settings.who,
+        warning: note('who', overrides),
+    }) }}
+    {% if commerce %}
+        {{ forms.lightswitchField({
+            label: 'Only people who bought it can review a product'|t('reviews'),
+            instructions: 'They need an account with the order, or to come from their review request email.'|t('reviews'),
+            name: 'settings[buyersOnly]',
+            on: settings.buyersOnly,
+            warning: note('buyersOnly', overrides),
+        }) }}
+    {% endif %}
+    {{ forms.selectField({
+        label: 'Publish without checking'|t('reviews'),
+        instructions: 'Never by rating: holding back bad reviews is against fake-review laws in the UK, EU and US.'|t('reviews'),
+        name: 'settings[autoApprove]',
+        options: [
+            { label: 'Never: an editor approves each review'|t('reviews'), value: 'never' },
+            { label: 'Reviews by signed-in users'|t('reviews'), value: 'users' },
+            { label: 'Reviews by verified buyers'|t('reviews'), value: 'verified' },
+        ],
+        value: settings.autoApprove,
+        warning: note('autoApprove', overrides),
+    }) }}
+
+    <hr>
+    <h2>{{ 'The form'|t('reviews') }}</h2>
+    {{ forms.lightswitchField({ label: 'Title required'|t('reviews'), name: 'settings[requireTitle]', on: settings.requireTitle }) }}
+    {{ forms.lightswitchField({ label: 'Review text required'|t('reviews'), name: 'settings[requireBody]', on: settings.requireBody }) }}
+    {{ forms.editableTableField({
+        label: 'Criteria'|t('reviews'),
+        instructions: 'Rated besides the overall rating (value for money, say). Optional for reviewers.'|t('reviews'),
+        id: 'criteria',
+        name: 'settings[criteria]',
+        cols: {
+            label: { type: 'singleline', heading: 'Label'|t('reviews') },
+            handle: { type: 'singleline', heading: 'Handle'|t('reviews'), code: true },
+        },
+        rows: settings.criteria,
+        allowAdd: true, allowDelete: true, allowReorder: true,
+        addRowLabel: 'Add a criterion'|t('reviews'),
+    }) }}
+    {{ forms.selectField({
+        label: 'Reviewers’ names'|t('reviews'),
+        name: 'settings[nameDisplay]',
+        options: [
+            { label: 'First name and initial (Jo B.)'|t('reviews'), value: 'short' },
+            { label: 'As written'|t('reviews'), value: 'full' },
+        ],
+        value: settings.nameDisplay,
+    }) }}
+    {{ forms.lightswitchField({ label: '“Helpful” votes'|t('reviews'), name: 'settings[votesEnabled]', on: settings.votesEnabled }) }}
+
+    <hr>
+    <h2>{{ 'Photos'|t('reviews') }}</h2>
+    {% if not gd %}<p class="warning">{{ 'Photos need PHP’s GD extension.'|t('reviews') }}</p>{% endif %}
+    {{ forms.lightswitchField({
+        label: 'Reviewers can add photos'|t('reviews'),
+        instructions: 'They’re kept off the site until the review is approved, and saved again without their location and other metadata.'|t('reviews'),
+        name: 'settings[photosEnabled]',
+        on: settings.photosEnabled,
+    }) }}
+    {{ forms.selectField({ label: 'Volume'|t('reviews'), instructions: 'Where approved photos go.'|t('reviews'), name: 'settings[photosVolume]', options: volumes, value: settings.photosVolume }) }}
+    {{ forms.textField({ label: 'Folder'|t('reviews'), name: 'settings[photosFolder]', value: settings.photosFolder }) }}
+    {{ forms.textField({ label: 'Most photos per review'|t('reviews'), type: 'number', min: 1, max: 10, name: 'settings[photosMax]', value: settings.photosMax }) }}
+
+    <hr>
+    <h2>{{ 'Spam'|t('reviews') }}</h2>
+    <p class="light">{{ 'A hidden field and a time check stop most bots without a captcha.'|t('reviews') }}</p>
+    {{ forms.selectField({
+        label: 'Captcha'|t('reviews'),
+        name: 'settings[captcha]',
+        options: [
+            { label: 'None'|t('reviews'), value: '' },
+            { label: 'Cloudflare Turnstile', value: 'turnstile' },
+            { label: 'hCaptcha', value: 'hcaptcha' },
+            { label: 'Google reCAPTCHA v2', value: 'recaptcha' },
+            { label: 'Google reCAPTCHA v3', value: 'recaptcha_v3' },
+        ],
+        value: settings.captcha,
+        warning: note('captcha', overrides),
+    }) }}
+    {{ forms.autosuggestField({ label: 'Site key'|t('reviews'), name: 'settings[captchaSiteKey]', value: settings.captchaSiteKey, suggestEnvVars: true }) }}
+    {{ forms.autosuggestField({ label: 'Secret key'|t('reviews'), instructions: 'Best as an environment variable, such as $CAPTCHA_SECRET.'|t('reviews'), name: 'settings[captchaSecretKey]', value: settings.captchaSecretKey, suggestEnvVars: true }) }}
+    {{ forms.textField({ label: 'Fewest seconds to write a review'|t('reviews'), type: 'number', min: 0, name: 'settings[minimumSeconds]', value: settings.minimumSeconds }) }}
+    {{ forms.textField({ label: 'Most links in a review'|t('reviews'), type: 'number', min: 0, name: 'settings[maxLinks]', value: settings.maxLinks }) }}
+
+    <hr>
+    <h2>{{ 'Emails'|t('reviews') }}</h2>
+    {{ forms.textField({
+        label: 'Tell these people about new reviews'|t('reviews'),
+        instructions: 'Email addresses, separated by commas. Change the email under Utilities → System Messages.'|t('reviews'),
+        name: 'settings[notify]',
+        value: settings.notify|join(', '),
+    }) }}
+    {% if commerce %}
+        {{ forms.lightswitchField({
+            label: 'Ask customers to review their orders'|t('reviews'),
+            instructions: 'An email after each completed order, with a link to review each product. Change it under Utilities → System Messages.'|t('reviews'),
+            name: 'settings[requestsEnabled]',
+            on: settings.requestsEnabled,
+        }) }}
+        {{ forms.textField({ label: 'Days after the order'|t('reviews'), type: 'number', min: 0, max: 365, name: 'settings[requestsDelayDays]', value: settings.requestsDelayDays }) }}
+        {% if orderStatuses|length %}
+            {{ forms.checkboxSelectField({
+                label: 'Only once an order is'|t('reviews'),
+                instructions: 'Shipped, say. Leave them all unticked to ask after any completed order.'|t('reviews'),
+                name: 'settings[requestsOrderStatuses]',
+                options: orderStatuses,
+                values: settings.requestsOrderStatuses,
+            }) }}
+        {% endif %}
+    {% endif %}
+
+    <hr>
+    <h2>{{ 'Search engines'|t('reviews') }}</h2>
+    {% set schemaOptions = [
+        { label: 'In my templates, with craft.reviews.schema()'|t('reviews'), value: 'manual' },
+        { label: 'On every reviewed page'|t('reviews'), value: 'auto' },
+    ] %}
+    {% if seomatic %}{% set schemaOptions = schemaOptions|merge([{ label: 'In SEOmatic’s own JSON-LD'|t('reviews'), value: 'seomatic' }]) %}{% endif %}
+    {{ forms.selectField({
+        label: 'Review schema'|t('reviews'),
+        instructions: 'Star ratings in search results. Only reviews written on this site (and imports you count as your own) go in it.'|t('reviews'),
+        name: 'settings[schemaOutput]',
+        options: schemaOptions|merge([{ label: 'Off'|t('reviews'), value: 'off' }]),
+        value: settings.schemaOutput,
+    }) }}
+    {{ forms.textField({
+        label: 'Schema type for entries'|t('reviews'),
+        instructions: 'Product, Book, Course, LocalBusiness… Commerce products are always Product.'|t('reviews'),
+        name: 'settings[schemaType]',
+        value: settings.schemaType,
+    }) }}
+    {{ forms.textField({ label: 'Reviews per page'|t('reviews'), type: 'number', min: 1, name: 'settings[perPage]', value: settings.perPage }) }}
+{% endblock %}

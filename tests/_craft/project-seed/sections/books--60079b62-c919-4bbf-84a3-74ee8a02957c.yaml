@@ -1,0 +1,21 @@
+defaultPlacement: end
+enableVersioning: true
+entryTypes:
+  -
+    uid: 10097e50-c0f9-42d8-bd00-14a4469aabb5 # Book
+handle: books
+maxAuthors: 1
+minAuthors: 1
+name: Books
+previewTargets:
+  -
+    label: 'Primary entry page'
+    urlFormat: '{url}'
+propagationMethod: all
+siteSettings:
+  d2c7146f-a2b9-4b3c-bb25-3c22407127f7: # Dog-ear Books
+    enabledByDefault: true
+    hasUrls: true
+    template: books/_entry
+    uriFormat: 'books/{slug}'
+type: channel

@@ -1,0 +1,35 @@
+{# The average rating, how many of each star, and each criterion's average. #}
+{% set summary = craft.reviews.summary(element) %}
+{% if wrap %}<div class="reviews-ui">{% endif %}
+<div class="reviews-ui__summary">
+    {% if summary.count %}
+        <p class="reviews-ui__average">
+            <span class="reviews-ui__average-number">{{ summary.rounded }}</span>
+            <span class="reviews-ui__muted">{{ 'out of 5'|t('reviews') }}</span>
+        </p>
+        {% include '_reviews/_stars' with { rating: summary.average } %}
+        <p class="reviews-ui__muted">{{ '{count, plural, =1{From 1 review} other{From # reviews}}'|t('reviews', { count: summary.count }) }}</p>
+        <ul class="reviews-ui__bars">
+            {% for row in summary.breakdown %}
+                <li class="reviews-ui__bar-row">
+                    <a href="?rating={{ row.rating }}#reviews-list">{{ '{count, plural, =1{1 star} other{# stars}}'|t('reviews', { count: row.rating }) }}</a>
+                    <span class="reviews-ui__bar" aria-hidden="true"><span class="reviews-ui__bar-fill" style="width: {{ row.percent }}%"></span></span>
+                    <span class="reviews-ui__muted">{{ row.total }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+        {% set criteria = craft.reviews.criteria %}
+        {% if criteria|length %}
+            <dl class="reviews-ui__criteria">
+                {% for criterion in criteria %}
+                    {% set average = summary.criterionAverage(criterion.handle) %}
+                    {% if average %}<div><dt>{{ criterion.label }}</dt><dd>{{ average }}</dd></div>{% endif %}
+                {% endfor %}
+            </dl>
+        {% endif %}
+    {% else %}
+        <p class="reviews-ui__empty">{{ 'No reviews yet.'|t('reviews') }}</p>
+    {% endif %}
+    {% if showForm %}<a class="reviews-ui__button reviews-ui__button--quiet" href="#write-a-review">{{ 'Write a review'|t('reviews') }}</a>{% endif %}
+</div>
+{% if wrap %}</div>{% endif %}

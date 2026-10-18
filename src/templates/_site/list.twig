@@ -1,0 +1,98 @@
+{# The reviews, with a choice of order, pages and "helpful" buttons. #}
+{% set sorts = {
+    newest: 'Newest'|t('reviews'),
+    oldest: 'Oldest'|t('reviews'),
+    highest: 'Highest rated'|t('reviews'),
+    lowest: 'Lowest rated'|t('reviews'),
+    helpful: 'Most helpful'|t('reviews'),
+} %}
+{% set sort = craft.app.request.getQueryParam('sort') %}
+{% set sort = sort in sorts|keys ? sort : 'newest' %}
+{% set rating = craft.app.request.getQueryParam('rating') %}
+{% set rating = rating in ['1', '2', '3', '4', '5'] ? rating : null %}
+{% set orderBy = {
+    newest: 'elements.dateCreated DESC, elements.id DESC',
+    oldest: 'elements.dateCreated ASC, elements.id ASC',
+    highest: 'rating DESC, elements.dateCreated DESC',
+    lowest: 'rating ASC, elements.dateCreated DESC',
+    helpful: 'helpful DESC, elements.dateCreated DESC',
+}[sort] %}
+{% set query = craft.reviews.reviews(element).orderBy(orderBy).limit(perPage) %}
+{% if rating %}{% do query.rating(rating) %}{% endif %}
+
+{% if wrap %}<div class="reviews-ui">{% endif %}
+<div class="reviews-ui__list-wrap" id="reviews-list">
+    <form class="reviews-ui__toolbar" method="get" action="#reviews-list">
+        <label>
+            <span>{{ 'Sort by'|t('reviews') }}</span>
+            <select class="reviews-ui__select" name="sort" onchange="this.form.submit()">
+                {% for value, label in sorts %}<option value="{{ value }}" {{ value == sort ? 'selected' }}>{{ label }}</option>{% endfor %}
+            </select>
+        </label>
+        {% if rating %}
+            <input type="hidden" name="rating" value="{{ rating }}">
+            <a href="?sort={{ sort }}#reviews-list">{{ '{count, plural, =1{Showing 1-star reviews} other{Showing #-star reviews}} · Show all'|t('reviews', { count: rating }) }}</a>
+        {% endif %}
+        <noscript><button class="reviews-ui__link-button">{{ 'Sort'|t('reviews') }}</button></noscript>
+    </form>
+
+    {% set notice = craft.app.session.getFlash('reviews', null, true) %}
+    {% if notice %}<p class="reviews-ui__message" role="status">{{ notice }}</p>{% endif %}
+
+    {% paginate query as pageInfo, reviews %}
+    <div class="reviews-ui__list">
+        {% for review in reviews %}
+            <article class="reviews-ui__review" id="review-{{ review.id }}">
+                <div class="reviews-ui__review-head">
+                    {% include '_reviews/_stars' with { rating: review.rating } %}
+                    {% if review.title %}<h3 class="reviews-ui__review-title">{{ review.title }}</h3>{% endif %}
+                </div>
+                {% if review.ratings|length %}
+                    <p class="reviews-ui__review-criteria reviews-ui__muted">
+                        {% for criterion in craft.reviews.criteria %}
+                            {% if review.ratings[criterion.handle] is defined %}<span>{{ criterion.label }} {{ review.ratings[criterion.handle] }}/5</span>{% endif %}
+                        {% endfor %}
+                    </p>
+                {% endif %}
+                {% if review.body %}<p>{{ review.body|nl2br }}</p>{% endif %}
+                {% set photos = review.publicPhotos %}
+                {% if photos|length %}
+                    <div class="reviews-ui__photos">{% for photo in photos %}<a href="{{ photo.url }}"><img src="{{ photo.url }}" alt="{{ photo.alt }}" loading="lazy"></a>{% endfor %}</div>
+                {% endif %}
+                <p class="reviews-ui__by reviews-ui__muted">
+                    <strong>{{ review.displayName }}</strong>
+                    <time datetime="{{ review.dateCreated|date('Y-m-d') }}">{{ review.dateCreated|date('j F Y') }}</time>
+                    {% if review.verified %}<span class="reviews-ui__verified">✓ {{ 'Verified buyer'|t('reviews') }}</span>{% endif %}
+                    {% if not review.isOwn %}
+                        <span class="reviews-ui__source">{{ 'From {platform}'|t('reviews', { platform: craft.reviews.sourceLabel(review.source) }) }}{% if review.sourceUrl %} · <a href="{{ review.sourceUrl }}" rel="nofollow noopener" target="_blank">{{ 'See it there'|t('reviews') }}</a>{% endif %}</span>
+                    {% endif %}
+                </p>
+                {% if review.reply %}
+                    <blockquote class="reviews-ui__reply">
+                        <span class="reviews-ui__reply-label">{{ 'Reply from {name}'|t('reviews', { name: siteName }) }}</span>
+                        {{ review.reply|nl2br }}
+                    </blockquote>
+                {% endif %}
+                {% if votesEnabled and review.isOwn %}
+                    <form class="reviews-ui__actions" method="post">
+                        {{ actionInput('reviews/reviews/vote') }}
+                        {{ csrfInput() }}
+                        {{ hiddenInput('reviewId', review.id) }}
+                        <button class="reviews-ui__link-button">{{ 'Helpful'|t('reviews') }}{% if review.helpful %} ({{ review.helpful }}){% endif %}</button>
+                    </form>
+                {% endif %}
+            </article>
+        {% else %}
+            <p class="reviews-ui__empty">{{ rating ? 'No reviews with that rating.'|t('reviews') : 'No reviews yet.'|t('reviews') }}</p>
+        {% endfor %}
+    </div>
+
+    {% if pageInfo.totalPages > 1 %}
+        <nav class="reviews-ui__pages" aria-label="{{ 'Pages of reviews'|t('reviews') }}">
+            {% if pageInfo.prevUrl %}<a href="{{ pageInfo.prevUrl }}#reviews-list">← {{ 'Previous'|t('reviews') }}</a>{% else %}<span></span>{% endif %}
+            <span class="reviews-ui__muted">{{ 'Page {page} of {pages}'|t('reviews', { page: pageInfo.currentPage, pages: pageInfo.totalPages }) }}</span>
+            {% if pageInfo.nextUrl %}<a href="{{ pageInfo.nextUrl }}#reviews-list">{{ 'Next'|t('reviews') }} →</a>{% else %}<span></span>{% endif %}
+        </nav>
+    {% endif %}
+</div>
+{% if wrap %}</div>{% endif %}

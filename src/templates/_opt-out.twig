@@ -1,0 +1,21 @@
+{% extends '_layouts/basic' %}
+{% set title = 'Review request emails'|t('reviews') %}
+
+{% block body %}
+    <div style="max-width: 32rem; margin: 15vh auto; padding: 0 1.5rem; font: 16px/1.5 system-ui, sans-serif;">
+        <h1 style="font-size: 1.5rem;">{{ title }}</h1>
+        {% if not valid %}
+            <p>{{ 'This link isn’t right. Please use the link from the email.'|t('reviews') }}</p>
+        {% elseif done %}
+            <p>{{ 'Done: {email} won’t be asked to review orders again.'|t('reviews', { email: email }) }}</p>
+        {% else %}
+            <p>{{ 'Stop emails asking {email} to review orders?'|t('reviews', { email: email }) }}</p>
+            <form method="post">
+                {{ csrfInput() }}
+                {{ hiddenInput('email', email) }}
+                {{ hiddenInput('sig', signature) }}
+                <button type="submit" class="btn submit">{{ 'Stop these emails'|t('reviews') }}</button>
+            </form>
+        {% endif %}
+    </div>
+{% endblock %}

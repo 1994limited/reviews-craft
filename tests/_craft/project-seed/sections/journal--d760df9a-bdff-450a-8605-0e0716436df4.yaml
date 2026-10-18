@@ -1,0 +1,21 @@
+defaultPlacement: end
+enableVersioning: true
+entryTypes:
+  -
+    uid: 55379cdf-c127-4155-add3-431fe3f86165 # Article
+handle: journal
+maxAuthors: 1
+minAuthors: 1
+name: Journal
+previewTargets:
+  -
+    label: 'Primary entry page'
+    urlFormat: '{url}'
+propagationMethod: all
+siteSettings:
+  d2c7146f-a2b9-4b3c-bb25-3c22407127f7: # Dog-ear Books
+    enabledByDefault: true
+    hasUrls: true
+    template: journal/_entry
+    uriFormat: 'journal/{slug}'
+type: channel

@@ -1,0 +1,41 @@
+{% extends '_layouts/cp' %}
+{% set title = 'Sync'|t('reviews') %}
+{% set selectedSubnavItem = 'sources' %}
+
+{% block actionButton %}
+    <div class="btngroup">
+        <button type="button" class="btn submit menubtn add icon">{{ 'New source'|t('reviews') }}</button>
+        <div class="menu"><ul>
+            {% for key, platform in platforms %}<li><a href="{{ url('reviews/sources/new', { type: key }) }}">{{ platform.label }}</a></li>{% endfor %}
+        </ul></div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <p>{{ 'Reviews fetched from other platforms on a schedule, shown on your pages with the attribution each platform asks for. They don’t count towards your ratings or go in your schema, unless the platform allows it.'|t('reviews') }}</p>
+    {% if sources|length %}
+        <table class="data fullwidth">
+            <thead><tr><th>{{ 'Name'|t('app') }}</th><th>{{ 'Platform'|t('reviews') }}</th><th>{{ 'Last synced'|t('reviews') }}</th><th></th></tr></thead>
+            <tbody>
+                {% for source in sources %}
+                    <tr>
+                        <td><span class="status {{ source.enabled ? 'green' : '' }}"></span><a href="{{ url('reviews/sources/' ~ source.id) }}">{{ source.name }}</a></td>
+                        <td>{{ source.platform.label ?? source.type }}</td>
+                        <td>
+                            {{ source.lastSynced ? source.lastSynced|datetime('short') : 'Not yet'|t('reviews') }}
+                            {% if source.lastError %}<div class="error">{{ source.lastError }}</div>{% endif %}
+                        </td>
+                        <td class="thin">
+                            <form method="post">{{ csrfInput() }}{{ actionInput('reviews/sources/sync-now') }}{{ hiddenInput('sourceId', source.id) }}{{ redirectInput('reviews/sources') }}
+                                <button class="btn small">{{ 'Sync now'|t('reviews') }}</button></form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p class="light">{{ 'Sources sync while someone’s using the control panel. To keep them up to date otherwise, run `php craft reviews/sync` from cron, hourly say.'|t('reviews') }}</p>
+    {% else %}
+        <p class="zilch">{{ 'No sources yet.'|t('reviews') }}</p>
+    {% endif %}
+    <p class="light">{{ 'Google reviews can’t be synced: Google’s terms don’t allow keeping them. Show them with Google’s own widget.'|t('reviews') }}</p>
+{% endblock %}

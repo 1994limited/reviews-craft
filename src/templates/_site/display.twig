@@ -1,0 +1,14 @@
+{#
+    craft.reviews.display(entry): the average, the reviews and the form together.
+    To change it, copy this folder's templates into your templates/_reviews folder.
+#}
+<section class="reviews-ui" id="reviews" aria-labelledby="reviews-heading">
+    <h2 class="reviews-ui__heading" id="reviews-heading">{{ heading }}</h2>
+    <div class="reviews-ui__columns">
+        {% include '_reviews/summary' with { wrap: false } %}
+        {% include '_reviews/list' with { wrap: false } %}
+    </div>
+    {% if showForm %}
+        {% include '_reviews/form' with { wrap: false } %}
+    {% endif %}
+</section>

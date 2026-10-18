@@ -1,0 +1,45 @@
+{% import '_includes/forms' as forms %}
+{{ forms.selectField({
+    label: 'Format'|t('reviews'),
+    instructions: 'Usually worked out from the file’s columns.'|t('reviews'),
+    name: 'format',
+    options: [{ label: 'Work it out'|t('reviews'), value: '' }]|merge(craft.reviews.importFormats|map((label, key) => { label: label, value: key })|values),
+    value: formatKey ?? '',
+}) }}
+{{ forms.lightswitchField({
+    label: 'Count them as this site’s own reviews'|t('reviews'),
+    instructions: 'For reviews your customers wrote for you on a platform you’re leaving. They then count towards ratings and go in your schema. Leave this off for reviews gathered elsewhere.'|t('reviews'),
+    name: 'counted',
+    on: options.counted,
+}) }}
+{{ forms.selectField({
+    label: 'Status'|t('reviews'),
+    name: 'status',
+    options: [
+        { label: 'Approved, if the platform showed them'|t('reviews'), value: 'keep' },
+        { label: 'Waiting for an editor'|t('reviews'), value: 'pending' },
+    ],
+    value: options.status,
+}) }}
+{{ forms.lightswitchField({
+    label: 'Include reviews the platform wasn’t showing'|t('reviews'),
+    instructions: 'Added as rejected, so they’re on record.'|t('reviews'),
+    name: 'includeUnpublished',
+    on: options.includeUnpublished,
+}) }}
+{{ forms.elementSelectField({
+    label: 'Reviews of the business go on'|t('reviews'),
+    instructions: 'Company reviews aren’t of a product: choose the entry they belong to (a reviews page, say), or they’re left out.'|t('reviews'),
+    name: 'businessElementId',
+    elementType: 'craft\\elements\\Entry',
+    limit: 1,
+    elements: business is defined and business ? [business] : [],
+}) }}
+{% if craft.app.isMultiSite %}
+    {{ forms.selectField({
+        label: 'Site'|t('app'),
+        name: 'siteId',
+        options: craft.app.sites.allSites|map(s => { label: s.name, value: s.id }),
+        value: options.siteId,
+    }) }}
+{% endif %}

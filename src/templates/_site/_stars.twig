@@ -1,0 +1,6 @@
+{# Stars for a rating. Expects `rating`. #}
+<span class="reviews-ui__stars" role="img" aria-label="{{ 'Rated {rating} out of 5'|t('reviews', { rating: rating }) }}">
+    {%- for star in craft.reviews.stars(rating) -%}
+        <span class="reviews-ui__star reviews-ui__star--{{ star.type }}" aria-hidden="true">★</span>
+    {%- endfor -%}
+</span>

@@ -1,0 +1,56 @@
+{% extends '_layouts/cp' %}
+{% set title = 'Import reviews'|t('reviews') %}
+{% set selectedSubnavItem = 'import' %}
+
+{% block content %}
+    {% if not result.format %}
+        <p class="error">{{ result.skipped[0].reason ?? 'The file couldn’t be read.'|t('reviews') }}</p>
+        <a class="btn" href="{{ url('reviews/import') }}">{{ 'Try another file'|t('reviews') }}</a>
+    {% else %}
+        <h2>{{ 'Read as {format}'|t('reviews', { format: result.format.label }) }}</h2>
+        <ul class="bullets">
+            <li>{{ '{count, plural, =1{1 review would be added.} other{# reviews would be added.}}'|t('reviews', { count: preview.matched }) }}</li>
+            {% if preview.existing %}<li>{{ '{count, plural, =1{1 is here already.} other{# are here already.}}'|t('reviews', { count: preview.existing }) }}</li>{% endif %}
+            {% if preview.unpublished %}<li>{{ '{count, plural, =1{1 the platform wasn’t showing is left out.} other{# the platform wasn’t showing are left out.}}'|t('reviews', { count: preview.unpublished }) }}</li>{% endif %}
+            {% if result.skipped|length %}<li>{{ '{count, plural, =1{1 row has no rating, and is skipped.} other{# rows have no rating, and are skipped.}}'|t('reviews', { count: result.skipped|length }) }}</li>{% endif %}
+        </ul>
+
+        {% if preview.unmatched|length %}
+            <h3>{{ 'Nothing on this site matches:'|t('reviews') }}</h3>
+            <p class="light">{{ 'Reviews are matched to products by SKU, to entries and products by slug, page address or exact title.'|t('reviews') }}</p>
+            <ul class="bullets">{% for item in preview.unmatched|slice(0, 20) %}<li><code>{{ item }}</code></li>{% endfor %}</ul>
+            {% if preview.unmatched|length > 20 %}<p class="light">{{ '…and {count} more.'|t('reviews', { count: preview.unmatched|length - 20 }) }}</p>{% endif %}
+        {% endif %}
+
+        {% if preview.examples|length %}
+            <h3>{{ 'For example'|t('reviews') }}</h3>
+            <table class="data fullwidth">
+                <thead><tr><th>{{ 'Rating'|t('reviews') }}</th><th>{{ 'Review'|t('reviews') }}</th><th>{{ 'Name'|t('reviews') }}</th><th>{{ 'Goes on'|t('reviews') }}</th></tr></thead>
+                <tbody>
+                    {% for example in preview.examples %}
+                        <tr>
+                            <td>{{ '★'|repeat(example.review.rating) }}</td>
+                            <td>{{ (example.review.title ?: example.review.body)|slice(0, 80) }}</td>
+                            <td>{{ example.review.name }}</td>
+                            <td>{{ example.element ? example.element.title : '–' }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+
+        <form method="post" style="margin-top: 24px;">
+            {{ csrfInput() }}
+            {{ actionInput('reviews/import/run') }}
+            {{ hiddenInput('token', token) }}
+            {{ hiddenInput('format', formatKey) }}
+            {{ hiddenInput('counted', options.counted ? 1 : 0) }}
+            {{ hiddenInput('status', options.status) }}
+            {{ hiddenInput('includeUnpublished', options.includeUnpublished ? 1 : 0) }}
+            {{ hiddenInput('businessElementId', options.businessElementId) }}
+            {{ hiddenInput('siteId', options.siteId) }}
+            <button class="btn submit" {{ preview.matched ? '' : 'disabled' }}>{{ 'Import {count, plural, =1{1 review} other{# reviews}}'|t('reviews', { count: preview.matched }) }}</button>
+            <a class="btn" href="{{ url('reviews/import') }}">{{ 'Cancel'|t('app') }}</a>
+        </form>
+    {% endif %}
+{% endblock %}

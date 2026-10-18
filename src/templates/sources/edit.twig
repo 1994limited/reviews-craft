@@ -1,0 +1,66 @@
+{% extends '_layouts/cp' %}
+{% import '_includes/forms' as forms %}
+{% set title = source.id ? source.name : 'New {platform} source'|t('reviews', { platform: platform.label ?? source.type }) %}
+{% set selectedSubnavItem = 'sources' %}
+{% set crumbs = [{ label: 'Sync'|t('reviews'), url: url('reviews/sources') }] %}
+{% set fullPageForm = true %}
+
+{% block content %}
+    {{ actionInput('reviews/sources/save') }}
+    {{ redirectInput('reviews/sources') }}
+    {% if source.id %}{{ hiddenInput('sourceId', source.id) }}{% endif %}
+    {{ hiddenInput('type', source.type) }}
+
+    {{ forms.textField({ label: 'Name'|t('app'), name: 'name', value: source.name ?: (platform.label ?? ''), required: true, errors: source.getErrors('name') }) }}
+
+    {% for key, field in platform.fields ?? [] %}
+        {{ forms.autosuggestField({
+            label: field.label|t('reviews'),
+            instructions: field.help|t('reviews') ~ (field.secret and source.settings[key] is defined and source.settings[key] ? ' ' ~ 'Leave it empty to keep the one saved.'|t('reviews') : ''),
+            name: 'settings[' ~ key ~ ']',
+            value: field.secret and not ((source.settings[key] ?? '') starts with '$') ? '' : (source.settings[key] ?? ''),
+            suggestEnvVars: true,
+            required: field.required,
+            errors: source.getErrors('settings.' ~ key),
+        }) }}
+    {% endfor %}
+
+    {% if platform and platform.attribution %}
+        <div class="readable" style="margin-bottom: 24px;"><p><strong>{{ 'Attribution'|t('reviews') }}:</strong> {{ platform.attribution.note ?: 'Reviews from {platform} show “From {platform}” beside them.'|t('reviews', { platform: platform.label }) }}</p></div>
+    {% endif %}
+
+    {{ forms.elementSelectField({
+        label: 'Reviews of the business go on'|t('reviews'),
+        instructions: 'Company reviews aren’t of a product: choose the entry they belong to, or they’re left out.'|t('reviews'),
+        name: 'businessElementId',
+        elementType: 'craft\\elements\\Entry',
+        limit: 1,
+        elements: business ? [business] : [],
+    }) }}
+
+    {% if platform and platform.schemaAllowed %}
+        {{ forms.lightswitchField({
+            label: 'Count towards ratings and schema'|t('reviews'),
+            instructions: '{platform} allows its product reviews to be marked up on your own pages.'|t('reviews', { platform: platform.label }),
+            name: 'countInSummary',
+            on: source.countInSummary,
+            errors: source.getErrors('countInSummary'),
+        }) }}
+    {% endif %}
+
+    {{ forms.textField({ label: 'Hours between syncs'|t('reviews'), type: 'number', min: 1, name: 'frequency', value: source.frequency }) }}
+    {{ forms.lightswitchField({ label: 'Enabled'|t('app'), name: 'enabled', on: source.enabled }) }}
+{% endblock %}
+
+{% block details %}
+    {% if source.id %}
+        <div class="meta read-only">
+            <div class="data"><h5 class="heading">{{ 'Last synced'|t('reviews') }}</h5><div class="value">{{ source.lastSynced ? source.lastSynced|datetime('short') : 'Not yet'|t('reviews') }}</div></div>
+            {% if source.lastError %}<div class="data"><h5 class="heading">{{ 'Last error'|t('reviews') }}</h5><div class="value error">{{ source.lastError }}</div></div>{% endif %}
+        </div>
+        <button type="button" class="btn small formsubmit" style="margin-top: 14px;"
+            data-action="reviews/sources/delete"
+            data-confirm="{{ 'Remove this source? Its reviews stay.'|t('reviews') }}"
+            data-redirect="{{ 'reviews/sources'|hash }}">{{ 'Remove source'|t('reviews') }}</button>
+    {% endif %}
+{% endblock %}
