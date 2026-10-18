@@ -83,6 +83,21 @@ class Settings extends Model
     /** Addresses told about each new review. */
     public array $notify = [];
 
+    /** Email reviewers when their review goes up. */
+    public bool $notifyApproved = false;
+
+    /** Email reviewers when the site replies to their review. */
+    public bool $notifyReplied = false;
+
+    /** Reviews a visitor can send in ten minutes, from one address. */
+    public int $throttleSubmit = 5;
+
+    /** "Helpful" votes a visitor can make in a minute. */
+    public int $throttleVotes = 30;
+
+    /** When a user is deleted, "anonymise" their reviews (keeping what they wrote), or "delete" them. */
+    public string $deletedUsers = 'anonymise';
+
     /** Review request emails after an order (needs Commerce). */
     public bool $requestsEnabled = false;
 
@@ -117,6 +132,8 @@ class Settings extends Model
     {
         return [
             [['who'], 'in', 'range' => ['anyone', 'users']],
+            [['deletedUsers'], 'in', 'range' => ['anonymise', 'delete']],
+            [['throttleSubmit', 'throttleVotes'], 'integer', 'min' => 1],
             [['sites'], 'in', 'range' => ['shared', 'separate']],
             [['autoApprove'], 'in', 'range' => ['never', 'users', 'verified']],
             [['nameDisplay'], 'in', 'range' => ['short', 'full']],

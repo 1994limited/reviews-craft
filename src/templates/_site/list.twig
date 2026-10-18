@@ -7,7 +7,8 @@
     helpful: 'Most helpful'|t('reviews'),
 } %}
 {% set sort = craft.app.request.getQueryParam('sort') %}
-{% set sort = sort in sorts|keys ? sort : 'newest' %}
+{% set sort = sort in sorts|keys ? sort : (options.sort ?? 'helpful') %}
+{% set sort = sort in sorts|keys ? sort : 'helpful' %}
 {% set rating = craft.app.request.getQueryParam('rating') %}
 {% set rating = rating in ['1', '2', '3', '4', '5'] ? rating : null %}
 {% set orderBy = {

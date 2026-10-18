@@ -141,6 +141,7 @@
     {{ forms.autosuggestField({ label: 'Secret key'|t('reviews'), instructions: 'Best as an environment variable, such as $CAPTCHA_SECRET.'|t('reviews'), name: 'settings[captchaSecretKey]', value: settings.captchaSecretKey, suggestEnvVars: true }) }}
     {{ forms.textField({ label: 'Fewest seconds to write a review'|t('reviews'), type: 'number', min: 0, name: 'settings[minimumSeconds]', value: settings.minimumSeconds }) }}
     {{ forms.textField({ label: 'Most links in a review'|t('reviews'), type: 'number', min: 0, name: 'settings[maxLinks]', value: settings.maxLinks }) }}
+    {{ forms.textField({ label: 'Reviews one visitor can send in ten minutes'|t('reviews'), type: 'number', min: 1, name: 'settings[throttleSubmit]', value: settings.throttleSubmit }) }}
 
     <hr>
     <h2>{{ 'Emails'|t('reviews') }}</h2>
@@ -150,6 +151,8 @@
         name: 'settings[notify]',
         value: settings.notify|join(', '),
     }) }}
+    {{ forms.lightswitchField({ label: 'Email reviewers when their review goes up'|t('reviews'), name: 'settings[notifyApproved]', on: settings.notifyApproved }) }}
+    {{ forms.lightswitchField({ label: 'Email reviewers when you reply'|t('reviews'), name: 'settings[notifyReplied]', on: settings.notifyReplied }) }}
     {% if commerce %}
         {{ forms.lightswitchField({
             label: 'Ask customers to review their orders'|t('reviews'),

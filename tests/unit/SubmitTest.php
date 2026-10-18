@@ -276,4 +276,44 @@ class SubmitTest extends TestCase
         $this->assertFileExists($kept);
         $this->assertSame([['pending' => 'reviews/pending/abc/keepme.jpg']], Review::find()->id($review->id)->status(null)->one()->photos);
     }
+
+    public function test_too_many_reviews_from_one_visitor_are_turned_away(): void
+    {
+        $this->settings(['throttleSubmit' => 2]);
+
+        foreach (['a', 'b'] as $who) {
+            $this->action('reviews/reviews/submit', body: $this->form($this->entry()->id, ['email' => $who.'@example.com']));
+        }
+
+        $response = $this->action('reviews/reviews/submit', body: $this->form($this->entry()->id, ['email' => 'c@example.com']));
+
+        $this->assertSame(429, $response->getStatusCode());
+        $this->assertSame(2, (int) Review::find()->status(null)->count());
+    }
+
+    public function test_reviewers_hear_when_their_review_goes_up_and_gets_a_reply(): void
+    {
+        $this->settings(['notifyApproved' => true, 'notifyReplied' => true]);
+        $review = $this->review($this->entry('books', 'Told'), 5, ReviewStatus::Pending, ['email' => 'told@example.com']);
+
+        $this->plugin()->reviews->approve($review);
+        $this->plugin()->reviews->reply($review, 'Thanks!');
+
+        $this->tester->seeEmailIsSent(2);
+        $this->assertArrayHasKey('told@example.com', $this->tester->grabLastSentEmail()->getTo());
+        $this->assertStringContainsString('Thanks!', $this->tester->grabLastSentEmail()->toString());
+    }
+
+    public function test_a_deleted_user_s_reviews_are_anonymised(): void
+    {
+        $user = $this->user('Gone Reader');
+        $review = $this->review($this->entry(), 4, ReviewStatus::Approved, ['userId' => $user->id, 'email' => $user->email, 'name' => 'Gone Reader']);
+
+        Craft::$app->getElements()->deleteElement($user);
+
+        $loaded = Review::find()->id($review->id)->one();
+        $this->assertSame('Anonymous', $loaded->name);
+        $this->assertNull($loaded->email);
+        $this->assertSame('A good read.', $loaded->body);
+    }
 }

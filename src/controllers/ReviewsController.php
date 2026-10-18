@@ -42,6 +42,10 @@ class ReviewsController extends Controller
             return $this->succeeded($thanks);
         }
 
+        if ($this->limited('submit', $plugin->getSettings()->throttleSubmit, 600)) {
+            return $this->tooMany();
+        }
+
         if (! $plugin->spam->captchaPassed($request)) {
             $form = new ReviewForm;
             $form->addError('captcha', Craft::t('reviews', 'Please show you’re not a robot.'));
@@ -100,6 +104,10 @@ class ReviewsController extends Controller
     {
         $this->requirePostRequest();
         $plugin = Plugin::getInstance();
+        if ($this->limited('votes', $plugin->getSettings()->throttleVotes, 60)) {
+            return $this->tooMany();
+        }
+
         $review = Review::find()->id((int) $this->request->getRequiredBodyParam('reviewId'))->one();
 
         if (! $plugin->getSettings()->votesEnabled || ! $review || ! $review->isOwn()) {
@@ -136,6 +144,37 @@ class ReviewsController extends Controller
             'done' => $done,
             'signature' => $signature,
         ], View::TEMPLATE_MODE_CP);
+    }
+
+    /**
+     * Whether a visitor has done this too often lately: counted by their
+     * address, hashed, in the cache, for as long as the limit lasts.
+     */
+    protected function limited(string $what, int $max, int $seconds): bool
+    {
+        $key = 'reviews:limit:'.$what.':'.hash_hmac('sha256', (string) $this->request->getUserIP(), (string) Craft::$app->getConfig()->getGeneral()->securityKey);
+        $cache = Craft::$app->getCache();
+        $hits = $cache->get($key);
+        $hits = is_array($hits) && $hits['until'] > time() ? $hits : ['count' => 0, 'until' => time() + $seconds];
+        $hits['count']++;
+        $cache->set($key, $hits, max(1, $hits['until'] - time()));
+
+        return $hits['count'] > max(1, $max);
+    }
+
+    protected function tooMany(): ?Response
+    {
+        $message = Craft::t('reviews', 'That’s a lot at once. Please wait a few minutes and try again.');
+
+        if ($this->request->getAcceptsJson()) {
+            return $this->asJson(['success' => false, 'message' => $message])->setStatusCode(429);
+        }
+
+        $form = new ReviewForm;
+        $form->addError('rating', $message);
+        $this->response->setStatusCode(429);
+
+        return $this->failed($form);
     }
 
     protected function voter(): string

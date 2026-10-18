@@ -3,9 +3,11 @@
 namespace nineteenninetyfour\reviews;
 
 use Craft;
+use craft\base\Element;
 use craft\base\Model;
 use craft\base\Plugin as BasePlugin;
 use craft\commerce\elements\Order;
+use craft\elements\User;
 use craft\events\RegisterComponentTypesEvent;
 use craft\events\RegisterEmailMessagesEvent;
 use craft\events\RegisterGqlQueriesEvent;
@@ -266,11 +268,47 @@ class Plugin extends BasePlugin
                 'body' => Craft::t('reviews', "Hi{% if name %} {{ name }}{% endif %},\n\nThank you for your order. We’d love to know what you think of it:\n\n{% for product in products %}- [{{ product.title }}]({{ product.url }})\n{% endfor %}\nYour review helps other customers, and us.\n\nThank you,\n{{ systemName }}\n\n[No more emails like this]({{ optOutUrl }})"),
             ];
             $event->messages[] = [
+                'key' => 'reviews_approved',
+                'heading' => Craft::t('reviews', 'When a reviewer’s review goes up'),
+                'subject' => Craft::t('reviews', 'Your review of {{ element.title }} is up'),
+                'body' => Craft::t('reviews', "Hi {{ review.name }},\n\nThank you for reviewing {{ element.title }}. Your review is on the site now:\n\n{{ element.url }}#review-{{ review.id }}\n\n{{ systemName }}"),
+            ];
+            $event->messages[] = [
+                'key' => 'reviews_replied',
+                'heading' => Craft::t('reviews', 'When the site replies to a review'),
+                'subject' => Craft::t('reviews', 'We replied to your review of {{ element.title }}'),
+                'body' => Craft::t('reviews', "Hi {{ review.name }},\n\nWe’ve replied to your review of {{ element.title }}:\n\n> {{ review.reply }}\n\n{{ element.url }}#review-{{ review.id }}\n\n{{ systemName }}"),
+            ];
+            $event->messages[] = [
                 'key' => 'reviews_new',
                 'heading' => Craft::t('reviews', 'When a review is written'),
                 'subject' => Craft::t('reviews', 'New {{ review.rating }}-star review of {{ element.title }}'),
                 'body' => Craft::t('reviews', "{{ review.name }} wrote a {{ review.rating }}-star review of {{ element.title }}{% if review.title %}: “{{ review.title }}”{% endif %}.\n\n{% if review.status == 'pending' %}It’s waiting for you to approve it: {% else %}See it: {% endif %}{{ review.cpEditUrl }}"),
             ];
+        });
+
+        Event::on(Reviews::class, Reviews::EVENT_AFTER_APPROVE, function (ReviewEvent $event) {
+            if ($this->getSettings()->notifyApproved) {
+                $this->tellReviewer('reviews_approved', $event->review);
+            }
+        });
+
+        Event::on(Reviews::class, Reviews::EVENT_AFTER_REPLY, function (ReviewEvent $event) {
+            if ($this->getSettings()->notifyReplied && $event->review->isApproved()) {
+                $this->tellReviewer('reviews_replied', $event->review);
+            }
+        });
+
+        // A deleted user's reviews lose their name and email, or go too.
+        Event::on(User::class, Element::EVENT_AFTER_DELETE, function (Event $event) {
+            /** @var User $user */
+            $user = $event->sender;
+
+            try {
+                $this->reviews->forget($user->email, (int) $user->id, $this->getSettings()->deletedUsers === 'delete');
+            } catch (Throwable $e) {
+                Craft::error('Reviews couldn’t forget a deleted user’s reviews: '.$e->getMessage(), 'reviews');
+            }
         });
 
         Event::on(Reviews::class, Reviews::EVENT_AFTER_SUBMIT, function (ReviewEvent $event) {
@@ -322,6 +360,24 @@ class Plugin extends BasePlugin
                 Craft::error('Reviews couldn’t schedule a review request: '.$e->getMessage(), 'reviews');
             }
         });
+    }
+
+    /**
+     * Email the person who wrote a review on this site.
+     */
+    protected function tellReviewer(string $message, Review $review): void
+    {
+        $element = $review->getElement();
+
+        if (! $review->isOwn() || ! $review->email || ! $element) {
+            return;
+        }
+
+        try {
+            Craft::$app->getMailer()->composeFromKey($message, ['review' => $review, 'element' => $element])->setTo($review->email)->send();
+        } catch (Throwable $e) {
+            Craft::warning('Reviews couldn’t email a reviewer: '.$e->getMessage(), 'reviews');
+        }
     }
 
     /**
