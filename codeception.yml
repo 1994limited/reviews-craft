@@ -17,6 +17,8 @@ modules:
                 reset: true
             migrations: []
             plugins:
+                - class: '\craft\commerce\Plugin'
+                  handle: commerce
                 - class: '\nineteenninetyfour\reviews\Plugin'
                   handle: reviews
             cleanup: true

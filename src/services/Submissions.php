@@ -69,9 +69,11 @@ class Submissions extends Component
      */
     public static function sessionOrders(): array
     {
-        $session = Craft::$app->getRequest()->getIsConsoleRequest() ? null : Craft::$app->getSession();
+        // Only a visitor who has a session already: reading it mustn't
+        // start one for everyone who sees a review form.
+        $session = Craft::$app->has('session') ? Craft::$app->getSession() : null;
 
-        if (! $session || ! $session->getIsActive() && ! $session->getHasSessionId()) {
+        if (! $session || (! $session->getIsActive() && ! $session->getHasSessionId())) {
             return [];
         }
 
