@@ -4,11 +4,15 @@
 
 **Reviews** in the control panel lists every review. The sources down the side show what's **waiting for moderation** (with a count, also on the nav item), reviews **written on this site**, and ones **imported or synced**. The status menu, search, sorting and columns work as on any Craft index. Select reviews to **approve**, **reject**, **mark as spam** or **delete** them together.
 
+![The reviews screen](images/cp-reviews.png)
+
 Open a review to see everything it says: the rating, the criteria, photos (including ones waiting, which only editors can see), who wrote it, and where it came from.
 
 - **Approve**, **Reject** or **Spam** at the top.
 - **Your reply** is shown under the review on the site, from the site. Leave it empty to take the reply off.
 - **Note** is for editors only: why it was rejected, say. Never shown on the site.
+
+![A review, with the shop's reply](images/cp-review.png)
 
 What a reviewer wrote can't be changed: see [Fair reviews](privacy.md#fair-reviews). When a reviewer changes their review, it waits for an editor again (unless it'd be published straight away anyway).
 

@@ -74,6 +74,9 @@ A review has:
 
 ## Writing your own form
 
+![The ready-made form, for comparison](images/form.png)
+
+
 Post to the `reviews/reviews/submit` action. `craft.reviews.formFields(element)` adds the action, the CSRF token, the element, the [spam checks](spam.md) and the captcha:
 
 ```twig

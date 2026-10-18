@@ -60,6 +60,20 @@ class OutputTest extends TestCase
         $this->assertStringContainsString('class="reviews-ui"', $html);
     }
 
+    public function test_criteria_averages_are_rounded(): void
+    {
+        $this->settings(['criteria' => [['handle' => 'story', 'label' => 'Story']]]);
+        $entry = $this->entry();
+
+        foreach ([4, 4, 3] as $story) {
+            $this->review($entry, 4, ReviewStatus::Approved, ['ratings' => ['story' => $story]]);
+        }
+
+        $html = $this->render('{{ craft.reviews.summaryHtml(entry) }}', ['entry' => $entry]);
+
+        $this->assertStringContainsString('<dd>3.7</dd>', $html);
+    }
+
     public function test_the_styles_come_from_the_core(): void
     {
         $this->assertStringContainsString('@layer reviews', (string) $this->render('{{ craft.reviews.styles(true) }}'));

@@ -19,6 +19,9 @@ Or search for Reviews in the Plugin Store.
 
 Open **Reviews → Settings**:
 
+![Reviews' settings](images/settings.png)
+
+
 1. Under **What can be reviewed**, tick the sections whose entries take reviews, and with Commerce, the product types.
 2. Choose who can write reviews, and whether they're published straight away (by default, an editor approves each one).
 3. Save.

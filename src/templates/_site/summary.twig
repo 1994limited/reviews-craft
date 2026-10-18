@@ -23,7 +23,7 @@
             <dl class="reviews-ui__criteria">
                 {% for criterion in criteria %}
                     {% set average = summary.criterionAverage(criterion.handle) %}
-                    {% if average %}<div><dt>{{ criterion.label }}</dt><dd>{{ average }}</dd></div>{% endif %}
+                    {% if average %}<div><dt>{{ criterion.label }}</dt><dd>{{ average|round(1) }}</dd></div>{% endif %}
                 {% endfor %}
             </dl>
         {% endif %}

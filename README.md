@@ -23,6 +23,10 @@ Other review plugins copy reviews in from Google, Yotpo or Trustpilot. Reviews c
 - **Private by default.** No IP addresses kept. Export or forget someone's reviews with one command.
 - **Ready-made, or your own markup.** One function gives you a finished reviews section whose styles take your site's fonts and colours, with every colour and size a CSS variable. Or write your own with `craft.reviews`.
 
+| A book's reviews | The form | The reviews screen | A review |
+| --- | --- | --- | --- |
+| ![Readers' reviews of a book, with the average and breakdown](docs/images/reviews.png) | ![The review form](docs/images/form.png) | ![Reviews in the control panel](docs/images/cp-reviews.png) | ![One review, with the shop's reply](docs/images/cp-review.png) |
+
 The screenshots are from Dog-ear Books, a made-up bookshop. See [the demo](docs/demo.md).
 
 ## Requirements

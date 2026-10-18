@@ -10,6 +10,8 @@ Don't want to write the markup and styles yourself? Reviews comes with a finishe
 {{ craft.reviews.display(entry) }}
 ```
 
+![The ready-made section on a book's page: the average and breakdown beside the reviews](images/reviews.png)
+
 It works without JavaScript, is usable by keyboard and screen readers, and fits phones. The styles take your site's font, size and text colour, and work out borders, muted text and empty stars from that colour, so they suit dark sites too.
 
 ## The functions
@@ -112,7 +114,10 @@ The templates are in the plugin's `src/templates/_site` folder: `display`, `summ
 
 ## Dark mode
 
-There's nothing to turn on: the styles follow the text colour of the page, not the visitor's dark-mode setting. On a site that's only light, the reviews are light; on a site with a dark mode, they follow it. Two things to check on a site with a dark mode:
+There's nothing to turn on: the styles follow the text colour of the page, not the visitor's dark-mode setting.
+
+![The same section on a dark page: its colours follow the text](images/reviews-dark.png)
+ On a site that's only light, the reviews are light; on a site with a dark mode, they follow it. Two things to check on a site with a dark mode:
 
 - Browsers draw drop-down menus and the file picker themselves. If your dark theme doesn't set `color-scheme: dark`, add it.
 - To use other colours in dark mode, set the variables there:
