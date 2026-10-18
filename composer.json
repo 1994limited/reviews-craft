@@ -30,7 +30,7 @@
     },
     "require": {
         "php": "^8.2",
-        "1994/reviews-core": "^1.0@dev",
+        "1994/reviews-core": "^1.0",
         "craftcms/cms": "^5.6"
     },
     "require-dev": {
@@ -47,12 +47,6 @@
         "craftcms/commerce": "For verified buyer badges, buyers-only reviews and review request emails after an order.",
         "nystudio107/craft-seomatic": "To add review schema to SEOmatic's own JSON-LD."
     },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../reviews-core"
-        }
-    ],
     "autoload": {
         "psr-4": {
             "nineteenninetyfour\\reviews\\": "src/"
