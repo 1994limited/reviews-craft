@@ -64,8 +64,9 @@
                     <strong>{{ review.displayName }}</strong>
                     <time datetime="{{ review.dateCreated|date('Y-m-d') }}">{{ review.dateCreated|date('j F Y') }}</time>
                     {% if review.verified %}<span class="reviews-ui__verified">✓ {{ 'Verified buyer'|t('reviews') }}</span>{% endif %}
-                    {% if not review.isOwn %}
-                        <span class="reviews-ui__source">{{ 'From {platform}'|t('reviews', { platform: craft.reviews.sourceLabel(review.source) }) }}{% if review.sourceUrl %} · <a href="{{ review.sourceUrl }}" rel="nofollow noopener" target="_blank">{{ 'See it there'|t('reviews') }}</a>{% endif %}</span>
+                    {% set platform = craft.reviews.platformName(review.source) %}
+                    {% if platform %}
+                        <span class="reviews-ui__source">{{ 'From {platform}'|t('reviews', { platform: platform }) }}{% if review.sourceUrl %} · <a href="{{ review.sourceUrl }}" rel="nofollow noopener" target="_blank">{{ 'See it there'|t('reviews') }}</a>{% endif %}</span>
                     {% endif %}
                 </p>
                 {% if review.reply %}

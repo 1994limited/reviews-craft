@@ -108,6 +108,16 @@ class ReviewsVariable
     }
 
     /**
+     * The name to show beside an imported review ("Judge.me"), or null for
+     * one written here, moved from another site of yours, or from a
+     * spreadsheet.
+     */
+    public function platformName(?string $key): ?string
+    {
+        return \NineteenNinetyFour\Reviews\Core\Import\Formats::platformName($key);
+    }
+
+    /**
      * The import formats, by key.
      *
      * @return array<string, string>
