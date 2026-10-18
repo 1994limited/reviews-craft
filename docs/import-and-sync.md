@@ -8,7 +8,7 @@ Under **Reviews → Import**, upload a CSV or JSON file. Reviews reads:
 
 | Platform | Its export | Matched to products by |
 | --- | --- | --- |
-| Reviews for Craft | `php craft reviews/export` (Reviews for Statamic's from 1.2) | ID, or exact title |
+| Reviews (Craft or Statamic) | `php craft reviews/export`, or Statamic's `php please reviews:export-all` | ID, or exact title |
 | Yotpo | Moderation → Export | SKU, handle or page address |
 | Judge.me | Its export, or its import template | Shopify handle |
 | REVIEWS.io | Its export, or its import template | SKU |
@@ -30,6 +30,12 @@ Options:
 
 For files over 20 MB, use the [console](commands.md#reviewsimport).
 
+### Moving between sites
+
+`php craft reviews/export reviews.csv` writes every review as a CSV that Reviews (for Craft or Statamic) imports: what each says, who wrote it, its status, the reply and dates, and where an imported one came from, with its link there. Photos stay on the old site, as assets. Reviews synced from a platform are best synced again on the new site, from the same source, rather than moved.
+
+Every cell is safe to open in a spreadsheet: one starting with `=`, `+`, `-` or `@` gets a `'` in front, so nothing a reviewer wrote can run as a formula. Reviews takes it off again when it imports the file.
+
 ## Syncing
 
 Under **Reviews → Sync**, add a source:
@@ -50,7 +56,9 @@ Each source syncs every 24 hours (**Hours between syncs**), from Craft's queue, 
 0 * * * * php /path/to/craft reviews/sync
 ```
 
-A sync adds new reviews and follows what the platform changes (a reply, a name, a verified badge, photos). When the platform takes a review down, so does the sync; when an editor here rejects one, the sync leaves it rejected. A sync that fails says why on the Sync page, and is tried again next time.
+A sync adds new reviews and follows what the platform changes (a reply, a name, a verified badge, photos). When the platform takes a review down, so does the sync; when an editor here rejects one, the sync leaves it rejected.
+
+A sync that fails says why on the Sync page, and is tried again next time. So is one where a review couldn't be saved: it isn't counted as done, so that review is fetched again rather than missed. A source syncs once at a time, however it's started: **Sync now** while it's already syncing says so.
 
 ### Not synced: Google
 

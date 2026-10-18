@@ -19,7 +19,7 @@
             <tbody>
                 {% for source in sources %}
                     <tr>
-                        <td><span class="status {{ source.enabled ? 'green' : '' }}"></span><a href="{{ url('reviews/sources/' ~ source.id) }}">{{ source.name }}</a></td>
+                        <td><span class="status {{ source.enabled ? 'green' : '' }}"></span><a href="{{ url('reviews/sources/' ~ source.id) }}">{{ source.name }}</a>{% if not source.enabled %} <span class="light">· {{ 'Off'|t('reviews') }}</span>{% endif %}</td>
                         <td>{{ source.platform.label ?? source.type }}</td>
                         <td>
                             {{ source.lastSynced ? source.lastSynced|datetime('short') : 'Not yet'|t('reviews') }}
@@ -33,7 +33,7 @@
                 {% endfor %}
             </tbody>
         </table>
-        <p class="light">{{ 'Sources sync while someone’s using the control panel. To keep them up to date otherwise, run `php craft reviews/sync` from cron, hourly say.'|t('reviews') }}</p>
+        <p class="light">{{ 'Sources sync while someone’s using the control panel. To keep them up to date otherwise, run {command} from cron, hourly say.'|t('reviews', { command: tag('code', { text: 'php craft reviews/sync' }) })|raw }}</p>
     {% else %}
         <p class="zilch">{{ 'No sources yet.'|t('reviews') }}</p>
     {% endif %}

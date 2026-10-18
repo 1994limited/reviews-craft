@@ -53,7 +53,7 @@ class ImportController extends Controller
         }
 
         if ($file->size > self::MAX_BYTES) {
-            Craft::$app->getSession()->setError(Craft::t('reviews', 'That file’s too big to import here. Use `php craft reviews/import` instead.'));
+            Craft::$app->getSession()->setError(Craft::t('reviews', 'That file’s too big to import here: use the console command, php craft reviews/import, instead.'));
 
             return $this->redirect('reviews/import');
         }

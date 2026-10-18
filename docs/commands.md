@@ -21,7 +21,7 @@ php craft reviews/import exports/yotpo.csv --counted --business=12
 
 ## `reviews/export`
 
-Every review, as a CSV that Reviews imports:
+Every review, as a CSV that Reviews (for Craft or Statamic) imports, safe to open in a spreadsheet ([Moving between sites](import-and-sync.md#moving-between-sites)):
 
 ```bash
 php craft reviews/export reviews.csv
