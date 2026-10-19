@@ -4,7 +4,7 @@
 
 For each review: the rating, title and text, the name and email address given (or the user account), the site it was written on, and, with Commerce, the order that verified it. Email addresses are never shown on the site or in GraphQL.
 
-**Not kept**: IP addresses and browser details. The rate limits use a hash of the IP address, only in the cache, for as long as the limit lasts. "Helpful" votes are kept as a one-way hash of the voter's account, or of a random cookie (`reviews_voter`, for a year) for guests. Opt-outs from review request emails are kept as a hash of the address.
+**Not kept**: IP addresses and browser details. The rate limits use a hash of the IP address, only in the cache, for as long as the limit lasts. "Helpful" votes are kept as a one-way hash of the voter's account or, for guests, of a cookie (`reviews_voter`, for a year). That cookie holds a token made from the guest's IP address, browser and language, keyed with your site's secret key, so someone who clears their cookies can't vote twice. The address and browser details themselves aren't kept. Opt-outs from review request emails are kept as a hash of the address.
 
 Mention reviews in your privacy notice: what you keep, why, and for how long. If you use a captcha, name it too ([Spam](spam.md#captchas)).
 
