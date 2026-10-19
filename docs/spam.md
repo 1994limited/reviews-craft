@@ -29,3 +29,7 @@ Set **Captcha** in `config/reviews.php` to a class implementing `NineteenNinetyF
 ```
 
 It has three methods: `widget()` (the HTML for the form), `field()` (the form field its answer comes in) and `verify(?string $token, ?string $ip): bool`.
+
+## Content-Security-Policy
+
+Reviews writes no inline scripts: the time trap, and reCAPTCHA v3's token, are in one file, `reviews.js`, published with Craft's other control panel resources, from your own site, so `script-src 'self'` allows them. A captcha also needs its provider's addresses allowed: `challenges.cloudflare.com` for Turnstile, `js.hcaptcha.com` and `hcaptcha.com` for hCaptcha, and `www.google.com` and `www.gstatic.com` for reCAPTCHA (each in `script-src` and `frame-src`). With Blitz installed, the "Helpful" buttons fetch their CSRF token with Craft's own inline script: allow it with a nonce or hash, as for Craft's other inline scripts.

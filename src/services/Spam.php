@@ -7,6 +7,7 @@ use craft\base\Component;
 use craft\helpers\Html;
 use craft\web\Request;
 use InvalidArgumentException;
+use NineteenNinetyFour\Reviews\Core\Assets;
 use NineteenNinetyFour\Reviews\Core\Captcha\Captcha;
 use NineteenNinetyFour\Reviews\Core\Captcha\Captchas;
 use NineteenNinetyFour\Reviews\Core\Spam\Links;
@@ -50,13 +51,14 @@ class Spam extends Component
     }
 
     /**
-     * Notes how long the page was open, for the time trap on cached pages.
-     * A file, not inline, so it runs under a strict Content-Security-Policy.
+     * What review forms need in the browser (the time check, and
+     * reCAPTCHA v3's token), from reviews-core: a file, not inline, so it
+     * runs under a strict Content-Security-Policy.
      */
     public function script(): string
     {
         try {
-            $url = Craft::$app->getAssetManager()->getPublishedUrl(dirname(__DIR__).'/web', true, 'reviews.js');
+            $url = Craft::$app->getAssetManager()->getPublishedUrl(dirname(Assets::scriptPath()), true, 'reviews.js');
         } catch (\Throwable $e) {
             Craft::warning('Reviews couldn’t publish its script: '.$e->getMessage(), 'reviews');
 
@@ -100,7 +102,7 @@ class Spam extends Component
         $captcha = null;
 
         if ($driver !== '' && Captchas::builtIn($driver)) {
-            $captcha = Captchas::make($driver, $settings->captchaSite(), $settings->captchaSecret(), new CraftClient(10), ['score' => $settings->captchaScore]);
+            $captcha = Captchas::make($driver, $settings->captchaSite(), $settings->captchaSecret(), new CraftClient(10), ['score' => $settings->captchaScore, 'inline_script' => false]);
         } elseif ($driver !== '') {
             if (! class_exists($driver) || ! is_subclass_of($driver, Captcha::class)) {
                 throw new InvalidArgumentException("Unknown reviews captcha [{$driver}]. Use turnstile, hcaptcha, recaptcha, recaptcha_v3, or a class implementing ".Captcha::class.'.');

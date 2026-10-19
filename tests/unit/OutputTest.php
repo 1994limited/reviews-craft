@@ -4,6 +4,7 @@ namespace nineteenninetyfour\reviews\tests\unit;
 
 use Craft;
 use craft\web\View;
+use NineteenNinetyFour\Reviews\Core\Assets;
 use nineteenninetyfour\reviews\elements\ReviewStatus;
 use nineteenninetyfour\reviews\fields\ReviewsField;
 
@@ -58,8 +59,19 @@ class OutputTest extends TestCase
         $html = $this->render('{{ craft.reviews.display(entry) }}', ['entry' => $entry]);
 
         $this->assertMatchesRegularExpression('/<script src="[^"]+reviews\.js[^"]*"><\/script>/', $html);
-        $this->assertStringNotContainsString('reviewsTimed', $html);
+        $this->assertStringNotContainsString('<script>', $html);
         $this->assertStringContainsString(Craft::$app->getFormatter()->asDate(new \DateTime, 'long'), $html);
+    }
+
+    public function test_recaptcha_v3_s_script_is_in_the_file_not_inline(): void
+    {
+        $this->settings(['captcha' => 'recaptcha_v3', 'captchaSiteKey' => 'site-key', 'captchaSecretKey' => 'secret']);
+        $entry = $this->entry();
+        $html = $this->render('{{ craft.reviews.display(entry) }}', ['entry' => $entry]);
+
+        $this->assertStringContainsString('data-reviews-recaptcha="site-key"', $html);
+        $this->assertStringNotContainsString('grecaptcha.execute', $html);
+        $this->assertStringContainsString('grecaptcha.execute', (string) file_get_contents(Assets::scriptPath()));
     }
 
     public function test_the_form_can_be_included_on_its_own_by_element_id(): void
