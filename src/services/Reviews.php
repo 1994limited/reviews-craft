@@ -19,6 +19,8 @@ use nineteenninetyfour\reviews\events\ReviewEvent;
 use nineteenninetyfour\reviews\fields\ReviewsField;
 use nineteenninetyfour\reviews\integrations\Blitz;
 use nineteenninetyfour\reviews\integrations\Commerce;
+use nineteenninetyfour\reviews\integrations\Seomatic;
+use nineteenninetyfour\reviews\jobs\RefreshAfterVotes;
 use nineteenninetyfour\reviews\migrations\Install;
 use nineteenninetyfour\reviews\Plugin;
 use Throwable;
@@ -33,6 +35,9 @@ use yii\db\IntegrityException;
  */
 class Reviews extends Component
 {
+    /** How long "helpful" votes wait to refresh the page they're on, together. */
+    public const VOTE_REFRESH_SECONDS = 300;
+
     public const EVENT_AFTER_SUBMIT = 'afterSubmit';
 
     public const EVENT_AFTER_APPROVE = 'afterApprove';
@@ -404,9 +409,75 @@ class Reviews extends Component
         }
 
         $review->helpful = (int) (new Query)->from(Install::REVIEWS)->select('helpful')->where(['id' => $review->id])->scalar();
-        $this->changed((int) $review->elementId, summary: false);
+
+        // A vote changes only the count beside the button, so the page's
+        // caches are refreshed once for every vote in the next few minutes,
+        // not for each.
+        $key = 'reviews:vote-refresh:'.$review->elementId;
+
+        if (Craft::$app->getCache()->add($key, true, self::VOTE_REFRESH_SECONDS)) {
+            try {
+                Craft::$app->getQueue()->delay(self::VOTE_REFRESH_SECONDS)->push(new RefreshAfterVotes(['elementId' => (int) $review->elementId]));
+            } catch (Throwable $e) {
+                // Not queued: let the next vote try, and refresh now.
+                Craft::$app->getCache()->delete($key);
+                $this->changed((int) $review->elementId, summary: false);
+            }
+        }
 
         return true;
+    }
+
+    /**
+     * Delete an element's reviews for good, as elements, so their photos go
+     * too: when the element itself is about to be deleted for good.
+     */
+    public function deleteFor(int $elementId): int
+    {
+        $deleted = 0;
+
+        foreach (Review::find()->elementId($elementId)->status(null)->trashed(null)->all() as $review) {
+            $deleted += $this->deleteForGood($review) ? 1 : 0;
+        }
+
+        TagDependency::invalidate(Craft::$app->getCache(), self::summaryTag($elementId));
+
+        return $deleted;
+    }
+
+    /**
+     * Reviews whose element was deleted some other way (by Craft's garbage
+     * collection, which doesn't fire element events): deleted the same way.
+     */
+    public function deleteOrphans(): int
+    {
+        $deleted = 0;
+
+        foreach (Review::find()->elementId(':empty:')->status(null)->trashed(null)->all() as $review) {
+            $deleted += $this->deleteForGood($review) ? 1 : 0;
+        }
+
+        // Elements whose review row is gone altogether (from before 1.0.1).
+        Craft::$app->getGc()->deletePartialElements(Review::class, Install::REVIEWS, 'id');
+
+        return $deleted;
+    }
+
+    protected function deleteForGood(Review $review): bool
+    {
+        try {
+            if (Craft::$app->getElements()->deleteElement($review, true)) {
+                return true;
+            }
+        } catch (Throwable $e) {
+            Craft::warning('Reviews couldn’t delete review '.$review->id.': '.$e->getMessage(), 'reviews');
+
+            return false;
+        }
+
+        Craft::warning('Reviews couldn’t delete review '.$review->id.'.', 'reviews');
+
+        return false;
     }
 
     /**
@@ -436,7 +507,8 @@ class Reviews extends Component
                 continue;
             }
 
-            $review->name = Craft::t('reviews', 'Anonymous');
+            // Left empty: "Anonymous" is shown in each visitor's language.
+            $review->name = '';
             $review->email = null;
             $review->userId = null;
             $this->save($review, false);
@@ -461,11 +533,17 @@ class Reviews extends Component
             return;
         }
 
-        try {
-            Craft::$app->getElements()->invalidateCachesForElement($element);
-            Blitz::refresh($element);
-        } catch (Throwable $e) {
-            Craft::warning('Reviews couldn’t clear caches for element '.$elementId.': '.$e->getMessage(), 'reviews');
+        // Each on its own: one failing doesn't stop the others.
+        foreach ([
+            fn () => Craft::$app->getElements()->invalidateCachesForElement($element),
+            fn () => Seomatic::refresh($element),
+            fn () => Blitz::refresh($element),
+        ] as $clear) {
+            try {
+                $clear();
+            } catch (Throwable $e) {
+                Craft::warning('Reviews couldn’t clear caches for element '.$elementId.': '.$e->getMessage(), 'reviews');
+            }
         }
     }
 }

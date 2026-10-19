@@ -2,11 +2,13 @@
 
 namespace nineteenninetyfour\reviews\tests\unit;
 
+use Craft;
 use craft\elements\Asset;
 use craft\web\UploadedFile;
 use NineteenNinetyFour\Reviews\Core\Spam\TimeToken;
 use nineteenninetyfour\reviews\elements\Review;
 use nineteenninetyfour\reviews\elements\ReviewStatus;
+use nineteenninetyfour\reviews\models\ReviewForm;
 use nineteenninetyfour\reviews\services\Spam;
 use nineteenninetyfour\reviews\services\Submissions;
 
@@ -75,6 +77,38 @@ class PhotosTest extends TestCase
         $this->assertNull($this->plugin()->photos->reencode($path));
     }
 
+    public function test_a_photo_that_can_t_be_read_is_an_error_not_dropped(): void
+    {
+        $path = sys_get_temp_dir().'/reviews-broken.png';
+        file_put_contents($path, 'not really a png');
+        $form = new ReviewForm(['rating' => 5, 'photos' => [new UploadedFile(['name' => 'holiday.png', 'tempName' => $path, 'type' => 'image/png', 'size' => 16, 'error' => UPLOAD_ERR_OK])]]);
+        $form->validatePhotos();
+
+        $this->assertStringContainsString('holiday.png', (string) $form->getFirstError('photos'));
+        $this->assertTrue($this->plugin()->photos->readable($this->upload()->tempName));
+
+        // A good header, cut short.
+        $whole = (string) file_get_contents($this->upload(800, 600)->tempName);
+        $cut = sys_get_temp_dir().'/reviews-cut.png';
+        file_put_contents($cut, substr($whole, 0, intdiv(strlen($whole), 3)));
+        $this->assertNotFalse(@getimagesize($cut));
+        $this->assertFalse($this->plugin()->photos->readable($cut));
+    }
+
+    public function test_deleting_the_reviewed_entry_deletes_the_photos(): void
+    {
+        $entry = $this->entry();
+        $review = $this->review($entry, 5, ReviewStatus::Pending);
+        $this->plugin()->photos->store($review, [$this->upload()]);
+        $this->plugin()->reviews->save($review);
+        $this->plugin()->reviews->approve($review);
+        $assetId = $review->photos[0]['asset'];
+
+        Craft::$app->getElements()->deleteElement($entry, true);
+
+        $this->assertNull(Asset::find()->id($assetId)->one());
+    }
+
     public function test_deleting_a_review_deletes_its_photos(): void
     {
         $review = $this->review($this->entry(), 5, ReviewStatus::Pending);
@@ -90,7 +124,7 @@ class PhotosTest extends TestCase
 
     public function test_new_photos_on_a_changed_auto_approved_review_go_on_the_site(): void
     {
-        \Craft::$app->getRequest()->enableCsrfValidation = false;
+        Craft::$app->getRequest()->enableCsrfValidation = false;
         $this->plugin()->controllerNamespace = 'nineteenninetyfour\\reviews\\controllers';
         $this->settings(['autoApprove' => 'users']);
         $entry = $this->entry();
@@ -117,11 +151,11 @@ class PhotosTest extends TestCase
                 'elementId' => $entry->id,
                 'rating' => 4,
                 'body' => 'Now with a photo.',
-                Spam::TIME_FIELD => (new TimeToken((string) \Craft::$app->getConfig()->getGeneral()->securityKey))->issue(time() - 60),
+                Spam::TIME_FIELD => (new TimeToken((string) Craft::$app->getConfig()->getGeneral()->securityKey))->issue(time() - 60),
             ]));
         } finally {
             $this->plugin()->set('submissions', Submissions::class);
-            \Craft::$app->getUser()->setIdentity(null);
+            Craft::$app->getUser()->setIdentity(null);
             $this->plugin()->controllerNamespace = 'nineteenninetyfour\\reviews\\console\\controllers';
         }
 

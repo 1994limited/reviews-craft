@@ -11,6 +11,8 @@ A review is marked **verified** when its writer bought the product, in a complet
 - on their account, when they're signed in, or
 - in the order they opened a review request email for, as a guest.
 
+An order refunded in full doesn't count, and nor does one in a status you've ticked under **Orders that don't count** (Cancelled, say): those orders don't get a review request either.
+
 A guest's typed email address never makes them verified: anyone can type someone else's. `review.verified` is true, the ready-made section shows "Verified buyer", and `craft.reviews.reviews(product).verified()` finds only theirs. The review's page in the control panel links to the order.
 
 ## Only buyers

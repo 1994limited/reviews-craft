@@ -62,7 +62,7 @@
                 {% endif %}
                 <p class="reviews-ui__by reviews-ui__muted">
                     <strong>{{ review.displayName }}</strong>
-                    <time datetime="{{ review.dateCreated|date('Y-m-d') }}">{{ review.dateCreated|date('j F Y') }}</time>
+                    <time datetime="{{ review.dateCreated|date('Y-m-d') }}">{{ review.dateCreated|date('long') }}</time>
                     {% if review.verified %}<span class="reviews-ui__verified">✓ {{ 'Verified buyer'|t('reviews') }}</span>{% endif %}
                     {% set platform = craft.reviews.platformName(review.source) %}
                     {% if platform %}
@@ -78,7 +78,7 @@
                 {% if votesEnabled and review.isOwn %}
                     <form class="reviews-ui__actions" method="post">
                         {{ actionInput('reviews/reviews/vote') }}
-                        {{ csrfInput() }}
+                        {{ craft.reviews.voteCsrfInput() }}
                         {{ hiddenInput('reviewId', review.id) }}
                         <button class="reviews-ui__link-button">{{ 'Helpful'|t('reviews') }}{% if review.helpful %} ({{ review.helpful }}){% endif %}</button>
                     </form>

@@ -60,7 +60,7 @@ class SettingsController extends Controller
         $plugin = Plugin::getInstance();
         $posted = (array) $this->request->getBodyParam('settings', []);
 
-        foreach (['sections', 'productTypes', 'requestsOrderStatuses'] as $list) {
+        foreach (['sections', 'productTypes', 'requestsOrderStatuses', 'excludedOrderStatuses'] as $list) {
             $posted[$list] = array_values(array_filter((array) ($posted[$list] ?? []), 'is_string'));
         }
 

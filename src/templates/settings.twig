@@ -169,6 +169,13 @@
                 options: orderStatuses,
                 values: settings.requestsOrderStatuses,
             }) }}
+            {{ forms.checkboxSelectField({
+                label: 'Orders that don’t count'|t('reviews'),
+                instructions: 'Cancelled, say. An order with one of these statuses doesn’t make anyone a verified buyer, or get a review request. Orders refunded in full never count.'|t('reviews'),
+                name: 'settings[excludedOrderStatuses]',
+                options: orderStatuses,
+                values: settings.excludedOrderStatuses,
+            }) }}
         {% endif %}
     {% endif %}
 

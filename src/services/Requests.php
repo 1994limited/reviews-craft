@@ -43,7 +43,7 @@ class Requests extends Component
         $settings = Plugin::getInstance()->getSettings();
         $order = Commerce::order($orderId);
 
-        if (! $settings->requestsEnabled || ! $order || ! $order['email']) {
+        if (! $settings->requestsEnabled || ! $order || ! $order['email'] || ! $order['counts']) {
             return;
         }
 
@@ -93,12 +93,30 @@ class Requests extends Component
             return false;
         }
 
-        // Not shipped yet, say: look again tomorrow, for a while.
+        // Cancelled or refunded since: nothing to ask about.
+        if (! $order['counts']) {
+            $this->markSent($requestId);
+
+            return false;
+        }
+
+        // Not shipped yet, say: look again tomorrow, for a while. The due
+        // date moves on too, so a cron run of sendDue() in the meantime
+        // doesn't queue another look.
         if ($settings->requestsOrderStatuses !== [] && ! in_array($order['status'], $settings->requestsOrderStatuses, true)) {
-            if ((new DateTime)->getTimestamp() - $due->getTimestamp() < self::GIVE_UP_DAYS * 86400) {
-                Craft::$app->getQueue()->delay(86400)->push(new SendReviewRequest(['requestId' => $requestId]));
-            } else {
+            $waited = time() - (new DateTime($request['dateCreated'], new \DateTimeZone('UTC')))->getTimestamp() - max(0, $settings->requestsDelayDays) * 86400;
+
+            if ($waited >= self::GIVE_UP_DAYS * 86400) {
                 $this->markSent($requestId);
+
+                return false;
+            }
+
+            $next = Db::update(Install::REQUESTS, ['dateDue' => Db::prepareDateForDb((new DateTime)->add(new DateInterval('P1D')))], ['id' => $requestId, 'dateDue' => $request['dateDue'], 'dateSent' => null]);
+
+            // Only whoever moved it queues the next look.
+            if ($next > 0) {
+                Craft::$app->getQueue()->delay(86400)->push(new SendReviewRequest(['requestId' => $requestId]));
             }
 
             return false;
@@ -127,15 +145,21 @@ class Requests extends Component
         }
 
         try {
-            $sent = Craft::$app->getMailer()
+            $message = Craft::$app->getMailer()
                 ->composeFromKey(self::MESSAGE, [
                     'name' => $order['name'],
                     'products' => $links,
                     'orderId' => (int) $request['orderId'],
-                    'optOutUrl' => $this->optOutUrl((string) $request['email']),
+                    'optOutUrl' => $this->optOutUrl((string) $request['email'], (string) $request['token']),
                 ])
-                ->setTo((string) $request['email'])
-                ->send();
+                ->setTo((string) $request['email']);
+
+            // In the order's site's language, whatever runs the queue.
+            if ($request['siteId']) {
+                $message->siteId = (int) $request['siteId'];
+            }
+
+            $sent = $message->send();
         } catch (Throwable $e) {
             Craft::error('Reviews couldn’t send a review request: '.$e->getMessage(), 'reviews');
             $sent = false;
@@ -215,14 +239,33 @@ class Requests extends Component
     }
 
     /**
-     * The link to ask for no more review request emails. Signed, so nobody
-     * can opt someone else out.
+     * The link to ask for no more review request emails. With the request's
+     * token, the address stays out of the link (and so out of access logs);
+     * without, it's signed, so nobody can opt someone else out.
      */
-    public function optOutUrl(string $email): string
+    public function optOutUrl(string $email, ?string $requestToken = null): string
     {
+        if ($requestToken !== null) {
+            return UrlHelper::actionUrl('reviews/reviews/opt-out', ['request' => $requestToken]);
+        }
+
         $email = mb_strtolower($email);
 
         return UrlHelper::actionUrl('reviews/reviews/opt-out', ['email' => $email, 'sig' => $this->signature($email)]);
+    }
+
+    /**
+     * The address a request was sent to, from its token.
+     */
+    public function emailForToken(string $token): ?string
+    {
+        if (! preg_match('/^[A-Za-z0-9]{40}$/', $token)) {
+            return null;
+        }
+
+        $email = (new Query)->from(Install::REQUESTS)->select('email')->where(['token' => $token])->scalar();
+
+        return is_string($email) && $email !== '' ? $email : null;
     }
 
     public function checkSignature(string $email, string $signature): bool

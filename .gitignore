@@ -10,3 +10,4 @@ composer.lock
 /tests/_craft/config/project
 /tests/_craft/web/uploads
 /tests/_craft/web/reviews
+/tests/_craft/web/cpresources

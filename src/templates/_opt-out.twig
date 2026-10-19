@@ -1,9 +1,26 @@
-{% extends '_layouts/basic' %}
+{# A page of its own: it's opened from an email, outside the control panel. #}
 {% set title = 'Review request emails'|t('reviews') %}
-
-{% block body %}
-    <div style="max-width: 32rem; margin: 15vh auto; padding: 0 1.5rem; font: 16px/1.5 system-ui, sans-serif;">
-        <h1 style="font-size: 1.5rem;">{{ title }}</h1>
+<!DOCTYPE html>
+<html lang="{{ craft.app.language }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>{{ title }}</title>
+    <style>
+        body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #1f2937; background: #fff; }
+        main { max-width: 32rem; margin: 15vh auto; padding: 0 1.5rem; }
+        h1 { font-size: 1.5rem; }
+        button { font: inherit; padding: .5rem 1rem; border: 0; border-radius: .375rem; background: #1f2937; color: #fff; cursor: pointer; }
+        @media (prefers-color-scheme: dark) {
+            body { color: #e5e7eb; background: #111827; }
+            button { background: #e5e7eb; color: #111827; }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>{{ title }}</h1>
         {% if not valid %}
             <p>{{ 'This link isn’t right. Please use the link from the email.'|t('reviews') }}</p>
         {% elseif done %}
@@ -12,10 +29,12 @@
             <p>{{ 'Stop emails asking {email} to review orders?'|t('reviews', { email: email }) }}</p>
             <form method="post">
                 {{ csrfInput() }}
-                {{ hiddenInput('email', email) }}
-                {{ hiddenInput('sig', signature) }}
-                <button type="submit" class="btn submit">{{ 'Stop these emails'|t('reviews') }}</button>
+                {% for name, value in params %}
+                    {{ hiddenInput(name, value) }}
+                {% endfor %}
+                <button type="submit">{{ 'Stop these emails'|t('reviews') }}</button>
             </form>
         {% endif %}
-    </div>
-{% endblock %}
+    </main>
+</body>
+</html>

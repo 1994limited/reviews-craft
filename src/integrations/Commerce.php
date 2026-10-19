@@ -8,7 +8,9 @@ use craft\commerce\elements\Order;
 use craft\commerce\elements\Product;
 use craft\commerce\elements\Variant;
 use craft\commerce\Plugin;
+use craft\commerce\records\Transaction as TransactionRecord;
 use craft\elements\User;
+use nineteenninetyfour\reviews\Plugin as Reviews;
 use Throwable;
 
 /**
@@ -78,9 +80,18 @@ class Commerce
             }
 
             $query = fn () => Order::find()->isCompleted()->hasPurchasables($variants)->orderBy(['dateOrdered' => SORT_DESC]);
+            $first = function ($query): ?int {
+                foreach ($query->each(20) as $order) {
+                    if (self::counts($order)) {
+                        return (int) $order->id;
+                    }
+                }
+
+                return null;
+            };
 
             if ($orderIds !== []) {
-                $id = $query()->id($orderIds)->ids()[0] ?? null;
+                $id = $first($query()->id($orderIds));
 
                 if ($id) {
                     return (int) $id;
@@ -88,7 +99,7 @@ class Commerce
             }
 
             if ($user) {
-                $id = $query()->customerId($user->id)->ids()[0] ?? null;
+                $id = $first($query()->customerId($user->id));
 
                 if ($id) {
                     return (int) $id;
@@ -99,6 +110,30 @@ class Commerce
         }
 
         return null;
+    }
+
+    /**
+     * Whether a completed order still counts as a purchase: not refunded in
+     * full, and not in a status the settings leave out (Cancelled, say).
+     */
+    public static function counts(Order $order): bool
+    {
+        $excluded = Reviews::getInstance()->getSettings()->excludedOrderStatuses;
+
+        if ($excluded !== [] && in_array($order->getOrderStatus()?->handle, $excluded, true)) {
+            return false;
+        }
+
+        // Paid for once, and nothing left paid now: refunded.
+        if ($order->getTotalPaid() <= 0 && $order->getTotalPrice() > 0) {
+            foreach ($order->getTransactions() as $transaction) {
+                if ($transaction->status === TransactionRecord::STATUS_SUCCESS && $transaction->type === TransactionRecord::TYPE_REFUND) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -128,7 +163,7 @@ class Commerce
     }
 
     /**
-     * @return array{email: string|null, name: string, status: string|null, siteId: int|null}|null
+     * @return array{email: string|null, name: string, status: string|null, siteId: int|null, counts: bool}|null
      */
     public static function order(int $orderId): ?array
     {
@@ -149,6 +184,7 @@ class Commerce
             'name' => trim((string) ($address->firstName ?? $order->getCustomer()->firstName ?? '')),
             'status' => $order->getOrderStatus()?->handle,
             'siteId' => $order->orderSiteId,
+            'counts' => self::counts($order),
         ];
     }
 }

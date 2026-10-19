@@ -11,9 +11,11 @@ use craft\commerce\models\ProductTypeSite;
 use craft\commerce\Plugin as Commerce;
 use craft\commerce\services\Carts;
 use craft\db\Query;
+use craft\db\Table;
 use craft\elements\User;
 use craft\helpers\Db;
 use craft\helpers\StringHelper;
+use craft\web\View;
 use nineteenninetyfour\reviews\elements\Review;
 use nineteenninetyfour\reviews\integrations\Commerce as CommerceIntegration;
 use nineteenninetyfour\reviews\migrations\Install;
@@ -163,6 +165,59 @@ class CommerceTest extends TestCase
 
         $this->assertFalse((new Query)->from(Install::REQUESTS)->where(['orderId' => $order->id])->exists());
         $this->assertTrue($this->plugin()->requests->checkSignature('quiet@example.com', substr(parse_url($this->plugin()->requests->optOutUrl('quiet@example.com'), PHP_URL_QUERY) ?: '', -32)));
+    }
+
+    public function test_the_opt_out_link_keeps_the_address_out_and_its_page_renders(): void
+    {
+        $order = $this->order($this->product(), null, 'private@example.com');
+        $token = (string) (new Query)->from(Install::REQUESTS)->select('token')->where(['orderId' => $order->id])->scalar();
+        $url = $this->plugin()->requests->optOutUrl('private@example.com', $token);
+
+        $this->assertStringNotContainsString('private', $url);
+        $this->assertStringContainsString('request='.$token, $url);
+        $this->assertSame('private@example.com', $this->plugin()->requests->emailForToken($token));
+        $this->assertNull($this->plugin()->requests->emailForToken(str_repeat('x', 40)));
+
+        $html = Craft::$app->getView()->renderTemplate('reviews/_opt-out', ['email' => 'private@example.com', 'valid' => true, 'done' => false, 'params' => ['request' => $token]], View::TEMPLATE_MODE_CP);
+        $this->assertStringContainsString('Stop these emails', $html);
+        $this->assertStringContainsString('name="request" value="'.$token.'"', $html);
+    }
+
+    public function test_orders_in_a_status_that_doesn_t_count_verify_nobody_and_get_no_request(): void
+    {
+        $product = $this->product();
+        $customer = $this->user('Cal Cancelled');
+        $order = $this->order($product, $customer);
+        $this->settings(['excludedOrderStatuses' => [$order->getOrderStatus()->handle]]);
+
+        $this->assertNull(CommerceIntegration::purchase($product->id, $customer));
+
+        $id = (int) (new Query)->from(Install::REQUESTS)->select('id')->where(['orderId' => $order->id])->scalar();
+        $this->assertFalse($this->plugin()->requests->send($id));
+        $this->tester->seeEmailIsSent(0);
+        // Completed in a status that doesn't count: no request at all.
+        $later = $this->order($product, null, 'cancelled@example.com');
+        $this->assertFalse((new Query)->from(Install::REQUESTS)->where(['orderId' => $later->id])->exists());
+    }
+
+    public function test_a_waiting_request_isn_t_queued_again_by_every_cron_run(): void
+    {
+        $this->settings(['requestsOrderStatuses' => ['shipped']]);
+        $order = $this->order($this->product(), null, 'waiting@example.com');
+        $id = (int) (new Query)->from(Install::REQUESTS)->select('id')->where(['orderId' => $order->id])->scalar();
+        $jobs = fn () => (int) (new Query)->from(Table::QUEUE)->where(['description' => 'Sending a review request'])->count();
+        $before = $jobs();
+
+        $this->assertFalse($this->plugin()->requests->send($id));
+        $this->assertSame($before + 1, $jobs());
+
+        // Cron, an hour later and again: nothing more queued.
+        $this->assertSame(0, $this->plugin()->requests->sendDue());
+        $this->assertSame(0, $this->plugin()->requests->sendDue());
+        $this->assertSame($before + 1, $jobs());
+
+        $due = new \DateTime((string) (new Query)->from(Install::REQUESTS)->select('dateDue')->where(['id' => $id])->scalar(), new \DateTimeZone('UTC'));
+        $this->assertGreaterThan(time() + 86000, $due->getTimestamp());
     }
 
     public function test_customers_who_reviewed_already_aren_t_asked_again(): void

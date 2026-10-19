@@ -277,11 +277,8 @@ class Submissions extends Component
     {
         $name = trim((string) $user->getFullName());
 
-        if ($name === '') {
-            return Craft::t('reviews', 'Anonymous');
-        }
-
-        return mb_substr($name, 0, max(1, Plugin::getInstance()->getSettings()->nameLimit));
+        // Empty shows as "Anonymous", in the visitor's language.
+        return $name === '' ? '' : mb_substr($name, 0, max(1, Plugin::getInstance()->getSettings()->nameLimit));
     }
 
     protected function text(mixed $value): ?string

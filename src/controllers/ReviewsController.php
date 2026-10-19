@@ -3,7 +3,6 @@
 namespace nineteenninetyfour\reviews\controllers;
 
 use Craft;
-use craft\helpers\StringHelper;
 use craft\web\Controller;
 use craft\web\View;
 use nineteenninetyfour\reviews\elements\Review;
@@ -125,10 +124,23 @@ class ReviewsController extends Controller
      */
     public function actionOptOut(): Response
     {
-        $email = (string) $this->request->getParam('email', '');
-        $signature = (string) $this->request->getParam('sig', '');
         $requests = Plugin::getInstance()->requests;
-        $valid = $email !== '' && $requests->checkSignature($email, $signature);
+        $token = (string) $this->request->getParam('request', '');
+
+        if ($token !== '') {
+            // From 1.0.1: the request's own token, so the address isn't in
+            // the link.
+            $email = (string) $requests->emailForToken($token);
+            $valid = $email !== '';
+            $params = ['request' => $token];
+        } else {
+            // Links in emails sent by 1.0.0.
+            $email = (string) $this->request->getParam('email', '');
+            $signature = (string) $this->request->getParam('sig', '');
+            $valid = $email !== '' && $requests->checkSignature($email, $signature);
+            $params = ['email' => $email, 'sig' => $signature];
+        }
+
         $done = false;
 
         if ($valid && $this->request->getIsPost()) {
@@ -142,7 +154,7 @@ class ReviewsController extends Controller
             'email' => $email,
             'valid' => $valid,
             'done' => $done,
-            'signature' => $signature,
+            'params' => $params,
         ], View::TEMPLATE_MODE_CP);
     }
 
@@ -188,7 +200,10 @@ class ReviewsController extends Controller
         $token = $this->request->getCookies()->getValue(self::VOTER_COOKIE);
 
         if (! is_string($token) || ! preg_match('/^[A-Za-z0-9]{32}$/', $token)) {
-            $token = StringHelper::randomString(32);
+            // A first vote, or someone who drops cookies: the same browser on
+            // the same connection gets the same token, so dropping the cookie
+            // doesn't make a new voter.
+            $token = substr(hash_hmac('sha256', 'voter|'.$this->request->getUserIP().'|'.$this->request->getUserAgent().'|'.$this->request->getHeaders()->get('Accept-Language'), $key), 0, 32);
             $this->response->getCookies()->add(new Cookie([
                 'name' => self::VOTER_COOKIE,
                 'value' => $token,

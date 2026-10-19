@@ -312,7 +312,8 @@ class SubmitTest extends TestCase
         Craft::$app->getElements()->deleteElement($user);
 
         $loaded = Review::find()->id($review->id)->one();
-        $this->assertSame('Anonymous', $loaded->name);
+        $this->assertSame('', $loaded->name);
+        $this->assertSame('Anonymous', $loaded->getDisplayName());
         $this->assertNull($loaded->email);
         $this->assertSame('A good read.', $loaded->body);
     }

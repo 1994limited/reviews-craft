@@ -4,6 +4,9 @@ Reviews keeps its own numbers cached (each element's average and breakdown) unti
 
 - **`{% cache %}` blocks** that use the element are cleared, as when the element is saved.
 - **Blitz**: the element's cached pages are refreshed, as when it's saved.
+- **SEOmatic**: with the rating in SEOmatic's JSON-LD, its cached meta for the element's section is cleared, as when the element is saved.
+
+A "helpful" vote changes only the count beside its button, so votes refresh the page once for every vote in the next five minutes, not for each.
 
 ## Pages cached whole
 
@@ -14,6 +17,8 @@ On a page cached whole (by Blitz, or a CDN), the review form needs to be fresh f
 {{ craft.reviews.list(entry) }}
 {{ craft.blitz.includeDynamic('_reviews/form', { elementId: entry.id }) }}
 ```
+
+The list's "Helpful" buttons can stay cached: with Blitz installed, each visitor's CSRF token is fetched when the page loads (Craft's `asyncCsrfInputs` setting does the same for any other cache). That takes JavaScript; without it, the buttons work on pages that aren't cached.
 
 The time check against spam still works: the form carries how long the page was open in the browser, not just when it was drawn.
 

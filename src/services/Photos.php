@@ -65,6 +65,35 @@ class Photos extends Component
     }
 
     /**
+     * Whether a file can be read as a photo: what reencode() checks before
+     * decoding it, so the reviewer is told, not left wondering where it went.
+     */
+    public function readable(?string $path): bool
+    {
+        if (! $path || ! is_file($path) || ! extension_loaded('gd')) {
+            return false;
+        }
+
+        $size = @getimagesize($path);
+
+        if (! is_array($size) || $size[0] < 1 || $size[1] < 1 || $size[0] * $size[1] > self::MAX_PIXELS
+            || ! in_array($size[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) {
+            return false;
+        }
+
+        // A file can have a good header and still be cut short: decode it.
+        $image = @imagecreatefromstring((string) file_get_contents($path));
+
+        if (! $image) {
+            return false;
+        }
+
+        imagedestroy($image);
+
+        return true;
+    }
+
+    /**
      * An image as a JPEG within the size limit, the right way up, without
      * its metadata. Null if it can't be read as an image.
      */

@@ -3,6 +3,7 @@
 namespace nineteenninetyfour\reviews\integrations;
 
 use Craft;
+use craft\base\ElementInterface;
 use nineteenninetyfour\reviews\Plugin;
 use nystudio107\seomatic\helpers\DynamicMeta;
 use Throwable;
@@ -20,6 +21,25 @@ class Seomatic
     public static function installed(): bool
     {
         return class_exists(\nystudio107\seomatic\Seomatic::class) && Craft::$app->getPlugins()->isPluginEnabled('seomatic');
+    }
+
+    /**
+     * SEOmatic caches a page's meta, with the rating Reviews adds, until
+     * the element (or its section) is saved: clear it as that would, when
+     * the element's reviews change.
+     */
+    public static function refresh(ElementInterface $element): void
+    {
+        if (! self::installed() || Plugin::getInstance()->getSettings()->schemaOutput !== 'seomatic') {
+            return;
+        }
+
+        $seomatic = \nystudio107\seomatic\Seomatic::$plugin;
+        [$sourceId, $sourceBundleType] = $seomatic->metaBundles->getMetaSourceFromElement($element);
+
+        if ($sourceId) {
+            $seomatic->metaContainers->invalidateContainerCacheById($sourceId, $sourceBundleType);
+        }
     }
 
     public static function register(): void

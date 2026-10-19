@@ -14,7 +14,7 @@ Everything the [ready-made section](ready-made.md) does, you can do yourself wit
         <p>{{ review.rating }} out of 5</p>
         {% if review.title %}<h3>{{ review.title }}</h3>{% endif %}
         {% if review.body %}<p>{{ review.body|nl2br }}</p>{% endif %}
-        <p>{{ review.displayName }}, {{ review.dateCreated|date('j F Y') }}{% if review.verified %}, verified buyer{% endif %}</p>
+        <p>{{ review.displayName }}, {{ review.dateCreated|date('long') }}{% if review.verified %}, verified buyer{% endif %}</p>
         {% if review.reply %}<blockquote>{{ review.reply|nl2br }}</blockquote>{% endif %}
     </article>
 {% endfor %}

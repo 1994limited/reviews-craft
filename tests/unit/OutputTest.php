@@ -51,6 +51,17 @@ class OutputTest extends TestCase
         $this->assertStringContainsString('From 1 review', $html);
     }
 
+    public function test_the_time_check_is_a_script_file_and_dates_follow_the_locale(): void
+    {
+        $entry = $this->entry();
+        $this->review($entry);
+        $html = $this->render('{{ craft.reviews.display(entry) }}', ['entry' => $entry]);
+
+        $this->assertMatchesRegularExpression('/<script src="[^"]+reviews\.js[^"]*"><\/script>/', $html);
+        $this->assertStringNotContainsString('reviewsTimed', $html);
+        $this->assertStringContainsString(Craft::$app->getFormatter()->asDate(new \DateTime, 'long'), $html);
+    }
+
     public function test_the_form_can_be_included_on_its_own_by_element_id(): void
     {
         $entry = $this->entry();

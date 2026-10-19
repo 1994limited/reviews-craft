@@ -506,7 +506,7 @@ class Review extends Element
         return match ($attribute) {
             'rating' => Html::tag('span', str_repeat('★', $this->rating).str_repeat('☆', 5 - $this->rating), ['title' => Craft::t('reviews', '{rating} out of 5', ['rating' => $this->rating]), 'style' => 'color: #e5a00d; letter-spacing: 1px;']),
             'element' => ($element = $this->getElement()) ? Cp::elementChipHtml($element) : '',
-            'name' => Html::encode($this->name),
+            'name' => Html::encode($this->name ?: Craft::t('reviews', 'Anonymous')),
             'email' => $this->email ? Html::a(Html::encode($this->email), 'mailto:'.$this->email) : '',
             'verified' => $this->verified ? Html::tag('span', '', ['data-icon' => 'check', 'title' => Craft::t('reviews', 'Verified buyer')]) : '',
             'photos' => $this->photos ? (string) count($this->photos) : '',

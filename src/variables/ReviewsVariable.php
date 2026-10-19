@@ -14,6 +14,7 @@ use NineteenNinetyFour\Reviews\Core\Rating\Summary;
 use NineteenNinetyFour\Reviews\Core\Schema\SchemaBuilder;
 use nineteenninetyfour\reviews\elements\db\ReviewQuery;
 use nineteenninetyfour\reviews\elements\Review;
+use nineteenninetyfour\reviews\integrations\Blitz;
 use nineteenninetyfour\reviews\models\ReviewForm;
 use nineteenninetyfour\reviews\Plugin;
 use nineteenninetyfour\reviews\services\Submissions;
@@ -209,6 +210,17 @@ class ReviewsVariable
             .($captcha ? $captcha->widget() : '')
             .$spam->script()
         );
+    }
+
+    /**
+     * The CSRF field for the "helpful" buttons. The list can stay in a page
+     * cached whole, so with Blitz each visitor's token is fetched when the
+     * page loads (Craft's asyncCsrfInputs setting does the same for any
+     * cache).
+     */
+    public function voteCsrfInput(): Markup
+    {
+        return Template::raw(Html::csrfInput(Blitz::installed() ? ['async' => true] : []));
     }
 
     /**

@@ -3,8 +3,13 @@
 namespace nineteenninetyfour\reviews\tests\unit;
 
 use Craft;
+use craft\db\Query;
+use craft\db\Table;
+use craft\helpers\Db;
+use craft\services\Gc;
 use nineteenninetyfour\reviews\elements\Review;
 use nineteenninetyfour\reviews\elements\ReviewStatus;
+use nineteenninetyfour\reviews\migrations\Install;
 
 class ReviewsTest extends TestCase
 {
@@ -135,7 +140,8 @@ class ReviewsTest extends TestCase
         $this->assertSame(1, $this->plugin()->reviews->forget('JO@example.com'));
 
         $loaded = Review::find()->id($review->id)->one();
-        $this->assertSame('Anonymous', $loaded->name);
+        $this->assertSame('', $loaded->name);
+        $this->assertSame('Anonymous', $loaded->getDisplayName());
         $this->assertNull($loaded->email);
         $this->assertSame('A good read.', $loaded->body);
         $this->assertSame('sam@example.com', Review::find()->id($other->id)->one()->email);
@@ -152,5 +158,36 @@ class ReviewsTest extends TestCase
         Craft::$app->getElements()->deleteElement($entry, true);
 
         $this->assertNull(Review::find()->id($review->id)->status(null)->trashed(null)->one());
+        // As an element too, not just its row.
+        $this->assertFalse((new Query)->from(Table::ELEMENTS)->where(['id' => $review->id])->exists());
+    }
+
+    public function test_reviews_of_an_element_garbage_collection_deleted_go_too(): void
+    {
+        $this->commerceStore();
+        $entry = $this->entry();
+        $review = $this->review($entry);
+
+        // Craft's garbage collection deletes trashed elements without events.
+        Db::delete(Table::ELEMENTS, ['id' => $entry->id]);
+        $this->assertTrue((new Query)->from(Install::REVIEWS)->where(['id' => $review->id, 'elementId' => null])->exists());
+
+        Craft::$app->getGc()->trigger(Gc::EVENT_RUN);
+
+        $this->assertFalse((new Query)->from(Install::REVIEWS)->where(['id' => $review->id])->exists());
+        $this->assertFalse((new Query)->from(Table::ELEMENTS)->where(['id' => $review->id])->exists());
+    }
+
+    public function test_votes_refresh_the_page_once_for_a_few_minutes(): void
+    {
+        $review = $this->review($this->entry());
+        $jobs = fn () => (int) (new Query)->from(Table::QUEUE)->where(['description' => 'Refreshing a page’s helpful votes'])->count();
+        $before = $jobs();
+
+        $this->plugin()->reviews->vote($review, 'voter-a');
+        $this->plugin()->reviews->vote($review, 'voter-b');
+        $this->plugin()->reviews->vote($review, 'voter-c');
+
+        $this->assertSame($before + 1, $jobs());
     }
 }

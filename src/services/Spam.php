@@ -51,10 +51,19 @@ class Spam extends Component
 
     /**
      * Notes how long the page was open, for the time trap on cached pages.
+     * A file, not inline, so it runs under a strict Content-Security-Policy.
      */
     public function script(): string
     {
-        return '<script>(function(){var t=Date.now();document.querySelectorAll("[data-reviews-opened]").forEach(function(i){var f=i.form;if(f&&!f.dataset.reviewsTimed){f.dataset.reviewsTimed=1;f.addEventListener("submit",function(){f.querySelectorAll("[data-reviews-opened]").forEach(function(x){x.value=String(Math.round((Date.now()-t)/1000))})})}})})();</script>';
+        try {
+            $url = Craft::$app->getAssetManager()->getPublishedUrl(dirname(__DIR__).'/web', true, 'reviews.js');
+        } catch (\Throwable $e) {
+            Craft::warning('Reviews couldn’t publish its script: '.$e->getMessage(), 'reviews');
+
+            return '';
+        }
+
+        return Html::jsFile((string) $url);
     }
 
     public function isBot(Request $request): bool

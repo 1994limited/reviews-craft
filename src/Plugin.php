@@ -8,6 +8,7 @@ use craft\base\Model;
 use craft\base\Plugin as BasePlugin;
 use craft\commerce\elements\Order;
 use craft\elements\User;
+use craft\events\DeleteElementEvent;
 use craft\events\RegisterComponentTypesEvent;
 use craft\events\RegisterEmailMessagesEvent;
 use craft\events\RegisterGqlQueriesEvent;
@@ -20,6 +21,7 @@ use craft\helpers\UrlHelper;
 use craft\services\Dashboard;
 use craft\services\Elements;
 use craft\services\Fields;
+use craft\services\Gc;
 use craft\services\Gql;
 use craft\services\SystemMessages;
 use craft\services\UserPermissions;
@@ -65,7 +67,7 @@ class Plugin extends BasePlugin
 
     public const PERMISSION_IMPORT = 'reviews-import';
 
-    public string $schemaVersion = '1.0.0';
+    public string $schemaVersion = '1.0.1';
 
     public bool $hasCpSettings = true;
 
@@ -299,6 +301,20 @@ class Plugin extends BasePlugin
             }
         });
 
+        // A reviewed element deleted for good takes its reviews with it, as
+        // elements, so their photos go too. Craft's garbage collection
+        // deletes trashed elements without events: whatever that leaves is
+        // swept up as it finishes.
+        Event::on(Elements::class, Elements::EVENT_BEFORE_DELETE_ELEMENT, function (DeleteElementEvent $event) {
+            if ($event->hardDelete && ! $event->element instanceof Review) {
+                $this->reviews->deleteFor((int) $event->element->id);
+            }
+        });
+
+        Event::on(Gc::class, Gc::EVENT_RUN, function () {
+            $this->reviews->deleteOrphans();
+        });
+
         // A deleted user's reviews lose their name and email, or go too.
         Event::on(User::class, Element::EVENT_AFTER_DELETE, function (Event $event) {
             /** @var User $user */
@@ -374,7 +390,10 @@ class Plugin extends BasePlugin
         }
 
         try {
-            Craft::$app->getMailer()->composeFromKey($message, ['review' => $review, 'element' => $element])->setTo($review->email)->send();
+            $mail = Craft::$app->getMailer()->composeFromKey($message, ['review' => $review, 'element' => $element])->setTo($review->email);
+            // In the language of the site it was written on.
+            $mail->siteId = $review->reviewSiteId;
+            $mail->send();
         } catch (Throwable $e) {
             Craft::warning('Reviews couldn’t email a reviewer: '.$e->getMessage(), 'reviews');
         }

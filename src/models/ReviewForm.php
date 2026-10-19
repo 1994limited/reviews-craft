@@ -122,6 +122,12 @@ class ReviewForm extends Model
 
                 return;
             }
+
+            if (! $photos->readable($file->tempName)) {
+                $this->addError('photos', Craft::t('reviews', '“{name}” couldn’t be read as a photo. Try saving it again as a JPEG.', ['name' => $file->name]));
+
+                return;
+            }
         }
     }
 

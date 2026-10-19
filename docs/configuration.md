@@ -49,6 +49,7 @@ return [
 | `requestsEnabled` | `false` | [Review request emails](commerce.md#review-request-emails). |
 | `requestsDelayDays` | `14` | |
 | `requestsOrderStatuses` | `[]` | Order status handles an order must reach first. |
+| `excludedOrderStatuses` | `[]` | Order status handles that don't count as a purchase (cancelled, say), for verified reviews and request emails. Orders refunded in full never count. |
 | `schemaOutput` | `'manual'` | `'manual'`, `'auto'`, `'seomatic'` or `'off'`: [Search engines](seo.md). |
 | `schemaType` | `'Product'` | The schema type for entries. |
 | `perPage` | `10` | Reviews per page in the ready-made list. |

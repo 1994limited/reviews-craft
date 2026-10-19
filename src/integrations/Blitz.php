@@ -11,9 +11,14 @@ use craft\base\ElementInterface;
  */
 class Blitz
 {
+    public static function installed(): bool
+    {
+        return class_exists(\putyourlightson\blitz\Blitz::class) && Craft::$app->getPlugins()->isPluginEnabled('blitz');
+    }
+
     public static function refresh(ElementInterface $element): void
     {
-        if (! class_exists(\putyourlightson\blitz\Blitz::class) || ! Craft::$app->getPlugins()->isPluginEnabled('blitz')) {
+        if (! class_exists(\putyourlightson\blitz\Blitz::class) || ! self::installed()) {
             return;
         }
 

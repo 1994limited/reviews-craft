@@ -106,6 +106,9 @@ class Settings extends Model
     /** Order status handles an order must reach before asking. Empty for any completed order. */
     public array $requestsOrderStatuses = [];
 
+    /** Order status handles that don't count as a purchase, for verified reviews and request emails: cancelled, say. */
+    public array $excludedOrderStatuses = [];
+
     /** schema.org type of entries' reviews, when Reviews adds the JSON-LD. */
     public string $schemaType = 'Product';
 

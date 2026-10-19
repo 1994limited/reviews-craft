@@ -25,7 +25,7 @@ class Install extends Migration
     {
         $this->createTable(self::REVIEWS, [
             'id' => $this->integer()->notNull(),
-            'elementId' => $this->integer()->notNull(),
+            'elementId' => $this->integer(),
             'reviewSiteId' => $this->integer()->notNull(),
             'rating' => $this->tinyInteger()->unsigned()->notNull(),
             'ratings' => $this->text(),
@@ -58,7 +58,9 @@ class Install extends Migration
         $this->createIndex(null, self::REVIEWS, ['sourceId']);
         $this->createIndex(null, self::REVIEWS, ['fingerprint'], true);
         $this->addForeignKey(null, self::REVIEWS, ['id'], Table::ELEMENTS, ['id'], 'CASCADE');
-        $this->addForeignKey(null, self::REVIEWS, ['elementId'], Table::ELEMENTS, ['id'], 'CASCADE');
+        // Not cascading: a deleted element's reviews are deleted as elements,
+        // with their photos (see Plugin::elementsDeleted()).
+        $this->addForeignKey(null, self::REVIEWS, ['elementId'], Table::ELEMENTS, ['id'], 'SET NULL');
         $this->addForeignKey(null, self::REVIEWS, ['reviewSiteId'], Table::SITES, ['id'], 'CASCADE', 'CASCADE');
         $this->addForeignKey(null, self::REVIEWS, ['userId'], Table::USERS, ['id'], 'SET NULL');
         $this->addForeignKey(null, self::REVIEWS, ['replyById'], Table::USERS, ['id'], 'SET NULL');
